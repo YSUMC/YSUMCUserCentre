@@ -1,0 +1,12 @@
+{
+  "php_tests": 935,
+  "assertions": 2021,
+  "bootstrap_object_valid": true,
+  "plugin_login_entry_present": true,
+  "language_script_present": true,
+  "browser_login_succeeded": true,
+  "browser_player_page_succeeded": true,
+  "browser_session_survives_reload": true,
+  "browser_new_errors": 0,
+  "test_account_removed": true
+}

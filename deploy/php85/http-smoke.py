@@ -3,6 +3,7 @@
 import base64
 from html.parser import HTMLParser
 import json
+import re
 from pathlib import Path
 import time
 from urllib.parse import urljoin, urlparse
@@ -57,6 +58,11 @@ class Forms(HTMLParser):
 
 page = request('GET', '/auth/login')
 check(page.status_code == 200, 'FPM renders login with Twig 3')
+bootstrap_match = re.search(r'<script id="blessing-globals"[^>]*>(.*?)</script>', page.text, re.S)
+bootstrap = json.loads(bootstrap_match[1]) if bootstrap_match else None
+check(isinstance(bootstrap, dict) and bootstrap.get('base_url') == base and bootstrap.get('route') == 'auth/login', 'Browser bootstrap configuration is usable')
+check(bool(re.search(r'<script src="[^"]+/lang/[^\"]+\.js', page.text)), 'Browser translations are injected by the footer composer')
+check('auth/eduroam/login' in page.text, 'Plugin view composer renders the campus login entry')
 csrf = Forms(page.text).csrf
 check(bool(csrf), 'CSRF token rendered')
 bad = request('POST', '/auth/login', json={'identification': fixture['email'], 'password': fixture['password']}, headers={'Accept': 'application/json'})

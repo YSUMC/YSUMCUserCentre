@@ -4,6 +4,34 @@ namespace Tests\Compatibility;
 
 class HttpTest extends TestCase
 {
+    public function testLoginBootstrapContainsNestedViewComposerData(): void
+    {
+        $html = $this->get('/auth/login')->assertOk()->getContent();
+        $this->assertSame(1, preg_match('/<script id="blessing-globals"[^>]*>(.*?)<\/script>/s', $html, $matches));
+        $globals = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($globals, 'The browser must receive a configuration object before rendering the login form.');
+        $this->assertSame(url('/'), $globals['base_url']);
+        $this->assertSame('auth/login', $globals['route']);
+        $this->assertSame(option_localized('site_name'), $globals['site_name']);
+        $this->assertNotEmpty($globals['site_name']);
+        $this->assertNotEmpty($globals['locale']);
+        $this->assertStringContainsString(' - '.htmlspecialchars($globals['site_name'], ENT_QUOTES), $html);
+        $this->assertStringContainsString('auth/eduroam/login', $html, 'Plugin view composers must also render the campus-login entry.');
+    }
+
+    public function testAuthenticatedPageBootstrapAndMenuReceiveComposerData(): void
+    {
+        $user = $this->makeUser();
+        $this->actingAs($user);
+        $html = $this->get('/user')->assertOk()->getContent();
+        $this->assertSame(1, preg_match('/<script id="blessing-globals"[^>]*>(.*?)<\/script>/s', $html, $matches));
+        $globals = json_decode($matches[1], true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($globals);
+        $this->assertSame('user', $globals['route']);
+        $this->assertSame(url('/'), $globals['base_url']);
+        $this->assertStringContainsString(htmlspecialchars($user->nickname, ENT_QUOTES), $html);
+    }
+
     public function testPublicPagesRenderWithTwigThree(): void
     {
         foreach (['/', '/auth/login', '/auth/eduroam/login'] as $path) {

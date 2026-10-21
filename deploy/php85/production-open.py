@@ -14,7 +14,11 @@ BACK = Path('/www/server/php-compat-assessments/20261022-migration/production-cu
 VHOST = Path('/www/server/panel/vhost/nginx/skin.ysumc.net.conf')
 ROOT = '/www/wwwroot/ysumcusercentre-php85-20261022'
 NGINX = '/www/server/nginx/sbin/nginx'
-assert json.loads((BACK/'http-smoke-result.json').read_text())['passed'] == 98
+http_checks = json.loads((BACK/'http-smoke-result.json').read_text())
+assert http_checks['passed'] >= 98
+assert 'Browser bootstrap configuration is usable' in http_checks['checks']
+assert 'Browser translations are injected by the footer composer' in http_checks['checks']
+assert 'Plugin view composer renders the campus login entry' in http_checks['checks']
 assert all(json.loads((BACK/'fixture-cleanup.json').read_text()).values())
 assert json.loads((BACK/'rollback-rehearsal.json').read_text())['passed']
 runtime = json.loads((BACK/'runtime-check.json').read_text())

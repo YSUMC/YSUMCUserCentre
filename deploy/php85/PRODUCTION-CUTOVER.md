@@ -2,6 +2,16 @@
 
 2026-10-22 02:35:50（北京时间）已恢复 `https://skin.ysumc.net` 公网访问。此次切换根据用户新授权执行，替代此前“生产保持停站、不切换 PHP”的阶段限制。修改与验收记录保存在 `codex/php85-compat` 独立分支。
 
+## 开站后登录页面修复
+
+用户随后报告登录页只有“登录以管理您的角色与皮肤”，没有账号/密码输入框。真实浏览器复现了 `Cannot read properties of null (reading 'base_url')`：旧 `config/twigbridge.php` 没有启用新版 TwigBridge 的 `TwigBridge\Extension\Laravel\Event` 扩展，嵌套和父模板的 Laravel view composer 未执行，使 `blessing-globals` 成为 `null`，页面标题、翻译脚本和 eduroam 入口也缺失。原 98 项生产 HTTP 检查直接提交登录接口，未执行浏览器 JavaScript，漏掉了该缺陷；不能将此前接口成功等同于浏览器登录成功。
+
+现已启用官方包自带的事件扩展，移除失效的旧 `base_template_class` 配置。新增两个实际渲染回归测试，修复前均稳定失败，修复后完整隔离测试为 **935 项、2021 条断言通过**。生产配置已备份到私有备份目录的 `login-view-composer-fix/`，按 www 用户重建配置/模板缓存并平滑重载 PHP FPM。
+
+修复后使用临时普通账号在真实浏览器填写表单、点击登录，成功进入生产用户中心；角色管理页及刷新后的登录会话正常，没有新增浏览器错误。测试账号已精确删除。HTTP 冒烟脚本及开站前检查已补上前端配置、翻译脚本和插件入口断言，后续不能仅凭 HTTP 200 放行。
+
+排查期间用户正在升级 Nginx，Web 监听曾暂时消失；这与原先页面表单不渲染是两个问题。本修复没有修改 Nginx 配置或中断升级，生产监听恢复后完成了上述浏览器验收。相关证据见 `evidence/login-view-composer-20261022/`。
+
 ## 当前部署
 
 | 项目 | 实际状态 |
