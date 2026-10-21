@@ -1,0 +1,55 @@
+{
+  "assets": [
+    {
+      "path": "/app/app.ysu20261021.js",
+      "status": 200
+    },
+    {
+      "path": "/app/style.7eb5d06.css",
+      "status": 200
+    },
+    {
+      "path": "/meta.js",
+      "status": 200
+    },
+    {
+      "path": "/ysumc/layout.css",
+      "status": 200
+    },
+    {
+      "path": "/ysumc/theme.css",
+      "status": 200
+    }
+  ],
+  "services": {
+    "ysumc-php85-fpm": {
+      "MainPID": "2033777",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "ysumc-janus": {
+      "MainPID": "2020612",
+      "NRestarts": "252",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "php-fpm-81": {
+      "MainPID": "0",
+      "NRestarts": "0",
+      "ActiveState": "inactive",
+      "UnitFileState": "generated"
+    }
+  },
+  "upload_progress_off": true,
+  "backups": {
+    "production-files.tar.gz": {
+      "bytes": 330705532,
+      "sha256": "634553804f53cdcdf46d87c1a3948dee303483a6a02bdda75cd5161db54f1b34"
+    },
+    "database.sql.gz": {
+      "bytes": 205160,
+      "sha256": "c0810bf57914c46d6a5bb436571ac9073309574230a8913d66bf43d3b013fcf3"
+    }
+  }
+}

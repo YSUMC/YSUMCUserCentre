@@ -1,5 +1,7 @@
 # PHP 8.5.12 迁移副本（2026-10-22）
 
+**最新状态：生产已于 2026-10-22 02:35:50（北京时间）切换至 PHP 8.5.12，并在 98 项生产 HTTP 检查、数据清理和回滚演练通过后恢复公网访问。备份、回滚命令、当前路径与服务见 [生产切换记录](PRODUCTION-CUTOVER.md)。下文的停站限制和迁移验收表记录的是切换前阶段，不代表当前生产状态。**
+
 分支：`codex/php85-compat`。源码副本：`YSUMCUserCentre-php85`。服务器候选目录：`/www/wwwroot/ysumcusercentre-next`。
 
 PHP 迁移验收阶段只修改候选副本；生产 `skin.ysumc.net` 保持宝塔停站页，PHP 8.1 FPM 保持停止。未切换站点根目录、PHP socket、生产数据库或 OAuth 密钥。生产 296 个基线文件 SHA-256 未变。

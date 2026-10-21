@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "original_stopped_vhost_restored": true,
+  "fpm85_stopped": true,
+  "janus_stayed_active": true,
+  "baota_metadata_restored": true,
+  "database_restore_not_needed": true
+}
