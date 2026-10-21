@@ -50,6 +50,11 @@
     "rollback_http_checks": 38,
     "restore_http_checks": 38,
     "runtime_parents_root_owned": true,
-    "production_pid_unchanged": true
-  }
+    "production_pid_unchanged": false,
+    "production_unit_unchanged": true,
+    "production_status_at_delivery": "auto-restart; 203/EXEC; original Node path missing",
+    "original_process_exit_cause": "undetermined"
+  },
+  "production_runtime_guard_passed": false,
+  "production_file_and_site_guards_passed": true
 }

@@ -56,7 +56,7 @@ $PHP vendor/bin/phpunit
 | Composer 平台、package discovery、config/view cache | 通过 |
 | Composer 安全审计 | 0 个已知安全公告，0 个停止维护依赖；原 13 个包均已移除 |
 | Node 修复方案 | SHA-256、目录权限、www 执行、systemd drop-in、重启和回退联调通过 |
-| 生产保护检查 | 296 个文件未变，PHP 8.1 inactive，公网响应与停站页逐字节相同；生产 Janus PID 和 unit 未变 |
+| 生产保护检查 | 296 个文件与 Janus unit 未变，PHP 8.1 inactive，公网响应与停站页逐字节相同；交付时发现 Janus 原进程已退出并自动重启失败，见下文 |
 
 测试覆盖页面、密码登录、权限、OAuth、Yggdrasil authenticate/refresh/join/hasJoined、签名校验、上传／头像／预览、ZIP 插件安装、设备码同意与选角、跨 PHP/Janus 的刷新和撤销。新增查询测试覆盖权限范围、绑定参数、中文、布尔、日期、关系计数与非法输入。最新证据在 `evidence/maintenance-20261022/`；HTTP 设备码链路是真实服务联调，不是 mock。
 
@@ -68,7 +68,7 @@ $PHP vendor/bin/phpunit
 
 Janus 继续沿用旧客户端 secret 存储，数据库与备份应保持原有保密边界；未来要散列化必须同时修改 Janus 和 PHP，并设计兼容迁移。本轮没有更改共享表结构，也没有运行生产 migration。
 
-生产 Janus 进程仍存活，但原 Node 路径已经失效。完整修复文件、安装顺序和可用的回退方式已在 [JANUS-NODE-REPAIR.md](JANUS-NODE-REPAIR.md) 准备并通过候选验证。本轮没有修改或重启生产 Janus，也未在 `/opt/ysumc/runtimes` 安装生产运行时。
+生产 Janus 在测试结束后的交付复核中出现状态变化：原进程已退出，2026-10-22 01:30 起 systemd 自动重试因原 Node 路径失效报 `203/EXEC`。原进程退出原因尚未定位。网站仍停站、生产配置未变；本轮没有修改或手动重启生产 Janus，也未在 `/opt/ysumc/runtimes` 安装生产运行时。完整修复文件、安装顺序和退出前保存的可用回退方式见 [JANUS-NODE-REPAIR.md](JANUS-NODE-REPAIR.md)。保护脚本会记录这一状态变化并返回非零，不把运行状态变化当作通过。
 
 正式切换是后续单独步骤：备份生产源码／依赖／配置与数据库，在另一个发布目录按锁安装 `--no-dev`，重新验证对应插件、前端资源、真实客户端与外部认证，然后才调整宝塔站点和 FPM。现阶段停站约束保持有效。
 

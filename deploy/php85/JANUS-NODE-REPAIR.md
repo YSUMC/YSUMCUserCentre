@@ -1,6 +1,8 @@
 # Janus Node 路径修复方案（待后续维护窗口执行）
 
-本轮只验证候选环境，未安装生产 drop-in、未 daemon-reload、未重启生产 Janus、未恢复皮肤站访问。生产 unit 的 `ExecStart=/usr/bin/node dist/main.js` 指向不存在的文件；存活进程实际使用的 `/www/server/nodejs/v22.18.0/bin/node` 也已被删除。
+本轮只验证候选环境，未安装生产 drop-in、未 daemon-reload、未手动重启生产 Janus、未恢复皮肤站访问。生产 unit 的 `ExecStart=/usr/bin/node dist/main.js` 指向不存在的文件；原进程实际使用的 `/www/server/nodejs/v22.18.0/bin/node` 也已被删除。
+
+**交付时状态更新（2026-10-22 01:30 起，北京时间）**：生产原 PID 1163747 已消失，systemd 自动重启因 `203/EXEC` 失败，当前处于重试状态。网站仍显示原停站页，296 个生产基线文件和 Janus unit 未变。原进程退出的原因无法由本次查到的日志确定；该时段未查到内核 OOM 记录。未为恢复进程而越过本轮“不切换”约束。以下修复方案可用于后续明确授权的维护窗口；旧二进制已在退出前保存并在候选环境验证。
 
 ## 修复文件与目标路径
 
@@ -28,7 +30,7 @@
 - 将生产 unit 复制到私有测试目录，只替换候选 WorkingDirectory 和运行时路径；`systemd-analyze verify` 验证对应 drop-in。该检查没有加载生产配置。
 - 候选 Janus 在 `ProtectSystem=strict`、`ProtectHome=true`、`PrivateTmp=true`、`NoNewPrivileges=true`、`UMask=0027` 下启动；编译和 13 项 Node 测试通过。
 - 新运行时启动、重启、旧运行时回退探测、恢复新运行时后，分别通过 38 项真实 PHP/FPM/Janus HTTP 检查（含设备码、选角、签发、刷新、跨服务撤销）。
-- 已在服务器私有目录保存旧进程二进制 `/www/server/php-compat-assessments/20261022-migration/janus-rollback-20261022/node`；版本 `v22.18.0`，SHA-256 `ccacb2d6d87ba6d118b2bffc1ae33747a05cc5fc6b1f1ec4fc1d420b687e952d`。其回退探测只连接候选数据库。私有快照不进入交付 ZIP。
+- 已在服务器私有目录保存旧进程二进制 `/www/server/php-compat-assessments/20261022-migration/janus-rollback-20261022/node`；版本 `v22.18.0`，SHA-256 `ccacb2d6d87ba6d118b2bffc1ae33747a05cc5fc6b1f1ec4fc1d420b687e952d`。其回退探测只连接候选数据库。私有快照不进入交付 ZIP，原进程退出后仍可使用。
 
 ## 将来正式修复的操作顺序
 

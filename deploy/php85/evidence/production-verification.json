@@ -1,11 +1,15 @@
 {
+  "observed_at": "2026-10-21T17:34:26.265761+00:00",
   "production_files_checked": 296,
   "changed": [],
   "production_php81": "inactive",
   "public_stop_page_exact_match": true,
-  "production_janus_pid": 1163747,
-  "production_janus_pid_unchanged": true,
+  "production_janus_pid": 0,
+  "production_janus_pid_unchanged": false,
   "production_janus_unit_unchanged": true,
+  "production_janus_state": "activating",
+  "production_janus_substate": "auto-restart",
+  "production_janus_exec_status": "203",
   "candidate_units": {
     "ysumc-php85-candidate-fpm": "inactive",
     "ysumc-php85-candidate-nginx": "inactive",

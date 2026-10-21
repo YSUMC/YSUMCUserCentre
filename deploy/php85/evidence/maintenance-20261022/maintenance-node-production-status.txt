@@ -1,0 +1,12 @@
+2026-10-22T01:30:28+08:00 wy systemd[1]: ysumc-janus.service: Scheduled restart job, restart counter is at 1.
+2026-10-22T01:30:28+08:00 wy systemd[1]: Started ysumc-janus.service - YSUMC game account authorization (Janus).
+2026-10-22T01:30:28+08:00 wy systemd[1]: ysumc-janus.service: Main process exited, code=exited, status=203/EXEC
+2026-10-22T01:30:28+08:00 wy systemd[1]: ysumc-janus.service: Failed with result 'exit-code'.
+2026-10-22T01:30:33+08:00 wy systemd[1]: ysumc-janus.service: Scheduled restart job, restart counter is at 2.
+2026-10-22T01:30:33+08:00 wy systemd[1]: Started ysumc-janus.service - YSUMC game account authorization (Janus).
+2026-10-22T01:30:33+08:00 wy systemd[1]: ysumc-janus.service: Main process exited, code=exited, status=203/EXEC
+2026-10-22T01:30:33+08:00 wy systemd[1]: ysumc-janus.service: Failed with result 'exit-code'.
+2026-10-22T01:30:38+08:00 wy systemd[1]: ysumc-janus.service: Scheduled restart job, restart counter is at 3.
+2026-10-22T01:30:38+08:00 wy systemd[1]: Started ysumc-janus.service - YSUMC game account authorization (Janus).
+2026-10-22T01:30:38+08:00 wy systemd[1]: ysumc-janus.service: Main process exited, code=exited, status=203/EXEC
+2026-10-22T01:30:38+08:00 wy systemd[1]: ysumc-janus.service: Failed with result 'exit-code'.
