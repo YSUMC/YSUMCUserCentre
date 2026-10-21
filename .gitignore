@@ -11,3 +11,4 @@
 *.log
 /.deploy/
 /.runtime/
+/.phpunit.cache/

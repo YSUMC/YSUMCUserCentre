@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-22",
+  "branch": "codex/php85-compat",
+  "baseline_commit": "0ce6477",
+  "php": "8.5.12",
+  "packages": {
+    "laravel/framework": "v13.38.0",
+    "laravel/passport": "v13.10.0",
+    "lcobucci/jwt": "5.6.1",
+    "nesbot/carbon": "3.15.0",
+    "symfony/http-foundation": "v8.1.9",
+    "twig/twig": "v3.30.0",
+    "phpunit/phpunit": "12.5.40"
+  },
+  "composer_lock_sha256": "5c6fcf449da1a860486bcd12a6c65522acbc9fe64f4796dfdf9b0a64ae70a20d",
+  "phpunit": {
+    "tests": 18,
+    "assertions": 146,
+    "passed": true
+  },
+  "http": {
+    "checks": 38,
+    "config_cached_and_uncached": true,
+    "passed": true
+  },
+  "eduroam_mock_checks": 31,
+  "launcher_contract_checks": 19,
+  "janus_tests": 13,
+  "syntax_files": 350,
+  "advisory_packages": 0,
+  "abandoned_packages": 13,
+  "production_files_unchanged": 296,
+  "production_site": "stopped",
+  "production_php81": "inactive",
+  "candidate_services": "stopped",
+  "candidate_database": "stopped; data retained",
+  "limitations": [
+    "No live Minecraft client",
+    "No real campus/union/mail upstream calls",
+    "SIT source assessment only"
+  ]
+}

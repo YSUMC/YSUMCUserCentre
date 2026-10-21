@@ -110,11 +110,12 @@ class ConfigController extends Controller
                 ->description(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.description'));
         })->handle();
 
-        $client = $this->clientRepository->find(env('PASSPORT_PERSONAL_ACCESS_CLIENT_ID'));
+        $id = config('passport.personal_access_client.id');
+        $client = $id ? $this->clientRepository->findActive($id) : null;
 
         if (!option('ygg_disable_authserver') && empty($client)) {
             $yggcForm->addMessage(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.empty-client-id'), 'danger');
-        } elseif (!$client->firstParty()) {
+        } elseif ($client && !$client->hasGrantType('personal_access')) {
             $yggcForm->addMessage(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.invalid-client-id'), 'danger');
         }
 

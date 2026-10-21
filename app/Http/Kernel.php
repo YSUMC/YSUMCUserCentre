@@ -14,7 +14,7 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
-        \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
+        \Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
         \App\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\DetectLanguagePrefer::class,
@@ -65,8 +65,8 @@ class Kernel extends HttpKernel
         'setup' => \App\Http\Middleware\CheckInstallation::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \App\Http\Middleware\CheckUserVerified::class,
-        'scope' => \Laravel\Passport\Http\Middleware\CheckForAnyScope::class,
-        'scopes' => \Laravel\Passport\Http\Middleware\CheckScopes::class,
+        'scope' => \Laravel\Passport\Http\Middleware\CheckTokenForAnyScope::class,
+        'scopes' => \Laravel\Passport\Http\Middleware\CheckToken::class,
         'auth-only' => \App\Http\Middleware\RejectAuthOnlyUser::class,
     ];
 }

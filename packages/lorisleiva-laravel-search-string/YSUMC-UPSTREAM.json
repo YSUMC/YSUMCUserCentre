@@ -1,0 +1,7 @@
+{
+  "name": "lorisleiva/laravel-search-string",
+  "version": "v1.3.0",
+  "reference": "3842079d0fe6315a3a24dbc30c15ed590c635357",
+  "archive_sha256": "f3392e114215a32911fd5cf9d06ac3d696368a913dc55cf66b0261b4f57cd257",
+  "changes": "Local Laravel 13 compatibility fork; regression validation required."
+}

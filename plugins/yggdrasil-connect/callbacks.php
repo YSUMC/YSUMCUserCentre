@@ -13,6 +13,9 @@ use LittleSkin\YggdrasilConnect\Scope as OpenIDScope;
 
 return [
     PluginWasEnabled::class => function () {
+        Scope::firstOrCreate(['name' => 'email'], [
+            'description' => 'LittleSkin\\YggdrasilConnect::scopes.email',
+        ]);
         if (!Scope::where('name', 'openid')->exists()) {
             Scope::create([
                 'name' => 'openid',

@@ -1,0 +1,96 @@
+
+> janus@1.0.0 test
+> npm run build && node --test test/*.test.cjs
+
+
+> janus@1.0.0 build
+> nest build
+
+TAP version 13
+# Subtest: preserves query strings and strips only the leading mount path
+ok 1 - preserves query strings and strips only the leading mount path
+  ---
+  duration_ms: 33.913117
+  type: 'test'
+  ...
+# Subtest: token endpoint supports CORS while interactive authorization does not
+ok 2 - token endpoint supports CORS while interactive authorization does not
+  ---
+  duration_ms: 3.114921
+  type: 'test'
+  ...
+# Subtest: unrelated paths remain 404 instead of causing CORS middleware errors
+ok 3 - unrelated paths remain 404 instead of causing CORS middleware errors
+  ---
+  duration_ms: 1.599101
+  type: 'test'
+  ...
+# Subtest: userinfo keeps the concrete route ahead of the provider catch-all
+ok 4 - userinfo keeps the concrete route ahead of the provider catch-all
+  ---
+  duration_ms: 1.831081
+  type: 'test'
+  ...
+# Subtest: invalid issuer and TTL produce configuration errors without URL parser crashes
+ok 5 - invalid issuer and TTL produce configuration errors without URL parser crashes
+  ---
+  duration_ms: 3.479231
+  type: 'test'
+  ...
+# Subtest: accepts a refresh token while both Passport records remain active
+ok 6 - accepts a refresh token while both Passport records remain active
+  ---
+  duration_ms: 0.782473
+  type: 'test'
+  ...
+# Subtest: rejects revoked refresh token even when Janus still has its payload
+ok 7 - rejects revoked refresh token even when Janus still has its payload
+  ---
+  duration_ms: 0.112465
+  type: 'test'
+  ...
+# Subtest: rejects missing refresh token even when Janus still has its payload
+ok 8 - rejects missing refresh token even when Janus still has its payload
+  ---
+  duration_ms: 0.069731
+  type: 'test'
+  ...
+# Subtest: rejects revoked access token even when Janus still has its payload
+ok 9 - rejects revoked access token even when Janus still has its payload
+  ---
+  duration_ms: 0.073811
+  type: 'test'
+  ...
+# Subtest: rejects missing access token even when Janus still has its payload
+ok 10 - rejects missing access token even when Janus still has its payload
+  ---
+  duration_ms: 0.066486
+  type: 'test'
+  ...
+# Subtest: returns consumption to the provider after a refresh token is used
+ok 11 - returns consumption to the provider after a refresh token is used
+  ---
+  duration_ms: 0.616635
+  type: 'test'
+  ...
+# Subtest: preserves consumption when looking up a device user code
+ok 12 - preserves consumption when looking up a device user code
+  ---
+  duration_ms: 0.183177
+  type: 'test'
+  ...
+# Subtest: preserves consumption when looking up an interaction UID
+ok 13 - preserves consumption when looking up an interaction UID
+  ---
+  duration_ms: 0.086449
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 284.331162

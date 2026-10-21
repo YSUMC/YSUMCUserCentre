@@ -172,8 +172,10 @@ class PluginManager
         $translations = $this->app->make('translation.loader');
         $translations->addNamespace($namespace, $path.'/lang');
 
-        $view = $this->app->make('view');
-        $view->addNamespace($namespace, $path.'/views');
+        if ($this->filesystem->isDirectory($path.'/views')) {
+            $view = $this->app->make('view');
+            $view->addNamespace($namespace, $path.'/views');
+        }
     }
 
     protected function registerServiceProviders(Plugin $plugin)

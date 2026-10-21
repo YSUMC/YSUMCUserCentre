@@ -6,9 +6,10 @@ use App\Models\User as BaseUser;
 use App\Services\Facades\Option;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Passport\RefreshTokenRepository;
+use Laravel\Passport\AccessToken as OAuthAccessToken;
+use Laravel\Passport\Passport;
+use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
-use Laravel\Passport\TokenRepository;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT;
 use LittleSkin\YggdrasilConnect\Exceptions\Yggdrasil\ForbiddenOperationException;
@@ -19,8 +20,6 @@ class AccessToken
 {
     public string $jwt;
     protected Token $passportToken;
-    protected TokenRepository $tokenRepository;
-    protected RefreshTokenRepository $refreshTokenRepository;
     protected JWT\Configuration $jwtConfig;
     protected JWT\Builder $builder;
     protected JWT\Parser $parser;
@@ -31,9 +30,6 @@ class AccessToken
 
     public function __construct(string $jwt)
     {
-        $this->tokenRepository = app(TokenRepository::class);
-        $this->refreshTokenRepository = app(RefreshTokenRepository::class);
-
         $this->jwtConfig = JWT\Configuration::forAsymmetricSigner(
             new JWT\Signer\Rsa\Sha256(),
             JWT\Signer\Key\InMemory::file(storage_path('oauth-private.key')),
@@ -57,9 +53,11 @@ class AccessToken
         }
 
         // 从数据库里查找 Access Token
-        if (!$this->passportToken = $this->tokenRepository->find($this->jwtDecoded->claims()->get('jti'))) {
+        $record = Passport::token()->newQuery()->find($this->jwtDecoded->claims()->get('jti'));
+        if (!$record) {
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.token.invalid'));
         }
+        $this->passportToken = $record;
 
         if ($this->passportToken->client_id != $this->jwtDecoded->claims()->get('aud')[0] || $this->passportToken->user_id != $this->jwtDecoded->claims()->get('sub')) {
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.token.invalid'));
@@ -70,7 +68,12 @@ class AccessToken
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.token.invalid'));
         }
 
-        $this->owner->withAccessToken($this->passportToken);
+        $this->owner->withAccessToken(new OAuthAccessToken([
+            'oauth_access_token_id' => $record->id,
+            'oauth_client_id' => (string) $record->client_id,
+            'oauth_user_id' => (string) $record->user_id,
+            'oauth_scopes' => $record->scopes,
+        ]));
         $this->owner->withYggdrasilToken($this);
         $this->selectedProfile = $this->jwtDecoded->claims()->get('selectedProfile');
         $this->jwt = $jwt;
@@ -92,7 +95,7 @@ class AccessToken
     {
         if (!$this->validator->validate(
             $this->jwtDecoded,
-            new JWT\Validation\Constraint\ValidAt(new SystemClock(new \DateTimeZone(date_default_timezone_get())))
+            new JWT\Validation\Constraint\LooseValidAt(new SystemClock(new \DateTimeZone(date_default_timezone_get())))
         )) {
             return true;
         }
@@ -106,7 +109,7 @@ class AccessToken
 
     public function isExpired2(): bool
     {
-        return $this->isExpired1() && Carbon::parse($this->passportToken->created_at)->addSeconds(Option::get('ygg_token_expire_2'))->isPast();
+        return $this->isExpired1() && Carbon::parse($this->passportToken->created_at)->addSeconds((int) Option::get('ygg_token_expire_2'))->isPast();
     }
 
     private function hasScopesToJoinServer(): bool
@@ -213,7 +216,7 @@ class AccessToken
         $newTokenDecoded = $this->parser->parse($newToken->jwt);
 
         // RFC 7519 中规定的声明只能通过这些方法来设置
-        $this->builder->canOnlyBeUsedAfter($newTokenDecoded->claims()->get('nbf'))
+        $this->builder = $this->jwtConfig->builder()->canOnlyBeUsedAfter($newTokenDecoded->claims()->get('nbf'))
             ->expiresAt($newTokenDecoded->claims()->get('exp'))
             ->identifiedBy($newTokenDecoded->claims()->get('jti'))
             ->issuedAt($newTokenDecoded->claims()->get('iat'))
@@ -223,12 +226,12 @@ class AccessToken
         // 其他声明通过 withClaim() 方法设置
         foreach ($newTokenDecoded->claims()->all() as $key => $value) {
             if (!in_array($key, JWT\Token\RegisteredClaims::ALL)) {
-                $this->builder->withClaim($key, $value);
+                $this->builder = $this->builder->withClaim($key, $value);
             }
         }
 
         // 设置选中的角色
-        $this->builder->withClaim('selectedProfile', $selectedProfile);
+        $this->builder = $this->builder->withClaim('selectedProfile', $selectedProfile);
 
         return new AccessToken($this->builder->getToken($this->jwtConfig->signer(), $this->jwtConfig->signingKey())->toString());
     }
@@ -236,7 +239,7 @@ class AccessToken
     public function revoke(): void
     {
         $this->passportToken->revoke();
-        $this->refreshTokenRepository->revokeRefreshTokensByAccessTokenId($this->passportToken->id);
+        RefreshToken::query()->where('access_token_id', $this->passportToken->id)->update(['revoked' => true]);
     }
 
     public function canJoinServer(): bool
@@ -256,7 +259,7 @@ class AccessToken
     {
         $tokens = Token::where('user_id', $user->uid)->where([
             ['user_id', $user->uid],
-            ['client_id', env('PASSPORT_PERSONAL_ACCESS_CLIENT_ID')],
+            ['client_id', config('passport.personal_access_client.id')],
             ['revoked', false],
             ['expires_at', '>', now()],
         ])->get();

@@ -25,6 +25,7 @@
 			{{ csrf_field() }}
 			<input type="hidden" name="state" value="{{ request.state }}">
 			<input type="hidden" name="client_id" value="{{ client.id }}">
+			<input type="hidden" name="auth_token" value="{{ authToken }}">
 			<button type="submit" class="btn btn-success btn-block pl-5 pr-5">
 				{{ trans('auth.oauth.authorization.button') }}
 			</button>
@@ -35,6 +36,7 @@
 			{{ method_field('DELETE') }}
 			<input type="hidden" name="state" value="{{ request.state }}">
 			<input type="hidden" name="client_id" value="{{ client.id }}">
+			<input type="hidden" name="auth_token" value="{{ authToken }}">
 			<button class="btn btn-default btn-block pl-5 pr-5">
 				{{ trans('general.cancel') }}
 			</button>

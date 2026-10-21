@@ -40,6 +40,10 @@ class Option
             return $value;
         }
 
+        if (!is_string($value)) {
+            return $value;
+        }
+
         switch (strtolower($value)) {
             case 'true':
             case '(true)':

@@ -21,9 +21,10 @@ class CheckIfAuthServerDisabled
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.yggc.authserver-disabled'));
         }
 
-        $client = $this->clientRepository->find(env('PASSPORT_PERSONAL_ACCESS_CLIENT_ID'));
+        $id = config('passport.personal_access_client.id');
+        $client = $id ? $this->clientRepository->findActive($id) : null;
 
-        if (empty($client) || !$client->personal_access_client) {
+        if (empty($client) || !$client->hasGrantType('personal_access')) {
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.yggc.invalid-client-id'));
         }
 

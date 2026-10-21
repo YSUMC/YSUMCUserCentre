@@ -1,0 +1,7 @@
+{
+  "name": "blessing/rejection",
+  "version": "v1.4.0",
+  "reference": "df4961d2f6c1557aaf1092680888e4be333e89bb",
+  "archive_sha256": "f336508bfc8a9a488052cf780b342c1b8701fc67358a20946be34c106d607463",
+  "changes": "Local Laravel 13 compatibility fork; regression validation required."
+}

@@ -22,6 +22,10 @@ use LittleSkin\YggdrasilConnect\Scope;
 require __DIR__.'/src/Utils/helpers.php';
 
 return function (Dispatcher $events, Filter $filter, Request $request) {
+    // Janus advertises this OIDC scope; existing installations may predate it.
+    Passport::tokensCan(array_merge(Passport::$scopes, [
+        Scope::EMAIL => 'LittleSkin\\YggdrasilConnect::scopes.email',
+    ]));
     Passport::personalAccessTokensExpireIn(now()->addSeconds(intval(Option::get('ygg_token_expire_1'))));
 
     if (env('YGG_VERBOSE_LOG')) {
@@ -229,7 +233,8 @@ return function (Dispatcher $events, Filter $filter, Request $request) {
         Hook::pushMiddleware('LittleSkin\YggdrasilConnect\Middleware\CheckIfScopeValid');
     }
 
-    Client::retrieved(function (Client $client) use ($request) {
+    $clientModel = Passport::clientModel();
+    $clientModel::retrieved(function (Client $client) use ($request) {
         if ($request->is('oauth/authorize')) {
             $yggc_redirect = option('site_url').'/yggc/callback';
             if (!in_array($yggc_redirect, explode(',', $client->redirect))) {

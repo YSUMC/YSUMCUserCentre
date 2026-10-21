@@ -1,0 +1,10 @@
+PHPUnit 12.5.40 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.12
+Configuration: /www/wwwroot/ysumcusercentre-next/phpunit.xml
+
+..................                                                18 / 18 (100%)
+
+Time: 00:05.784, Memory: 76.50 MB
+
+OK (18 tests, 146 assertions)

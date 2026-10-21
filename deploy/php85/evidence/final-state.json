@@ -1,0 +1,6 @@
+{
+  "candidate_services": "stopped",
+  "candidate_database": "stopped; data retained",
+  "production_php81": "inactive",
+  "public_stop_page_exact_match": true
+}
