@@ -12,6 +12,12 @@ import { CustomPrismaService } from 'nestjs-prisma';
 export const BS_RESOURCE_INDICATOR: string = "https://github.com/bs-community/blessing-skin-server";
 export const ACCESS_TOKEN_NAME: string = "Yggdrasil Connect";
 
+function escapeHtml(value: unknown): string {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[character]!);
+}
+
 @Injectable()
 export class OIDCProviderService {
     // 填写皮肤站站点名和站点图标 Url
@@ -89,10 +95,10 @@ export class OIDCProviderService {
     
     async userCodeConfirmSource(ctx: oidc.KoaContextWithOIDC, form: String, _client: any, _deviceInfo: any, userCode: String) {
         const content = `
-            <p class="login-box-msg">登录至 ${ctx.oidc.client?.clientName || ctx.oidc.client?.clientId}</p>
+            <p class="login-box-msg">登录至 ${escapeHtml(ctx.oidc.client?.clientName || ctx.oidc.client?.clientId)}</p>
             <main>
                 <div class="alert alert-info">请确认以下授权码与您的应用中显示的授权码相符。</div>
-                    <div class="mb-3 text-center" style="font-size: 1.6em; font-weight: bold; font-family: Minecraft;">${userCode}</div>
+                    <div class="mb-3 text-center" style="font-size: 1.6em; font-weight: bold; font-family: Minecraft;">${escapeHtml(userCode)}</div>
                 <div class="alert alert-warning">
                     如果您没有发起此操作，或者该授权码与您的应用中显示的授权码不匹配，请关闭此窗口或点击取消。
                 </div>
@@ -113,7 +119,7 @@ export class OIDCProviderService {
         const content = `
             <p class="login-box-msg">授予应用访问权限</p>
             <main>
-                <div class="alert alert-danger">${msg}</div>
+                <div class="alert alert-danger">${escapeHtml(msg)}</div>
                 <div class="form-group">${form}</div>
                 <div class="alert alert-warning">
                     请勿输入来自你不信任的来源的授权码，以免造成个人隐私泄露和账号安全问题。

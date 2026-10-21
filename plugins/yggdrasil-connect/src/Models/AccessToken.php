@@ -257,16 +257,7 @@ class AccessToken
 
     public static function revokeAllForUser(BaseUser $user): void
     {
-        $tokens = Token::where('user_id', $user->uid)->where([
-            ['user_id', $user->uid],
-            ['client_id', config('passport.personal_access_client.id')],
-            ['revoked', false],
-            ['expires_at', '>', now()],
-        ])->get();
-
-        foreach ($tokens as $token) {
-            $token->revoke();
-        }
+        app(\App\Services\RevokeUserTokens::class)->revoke($user);
     }
 
     public function __call($method, $paramaters)

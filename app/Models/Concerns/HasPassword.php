@@ -28,6 +28,6 @@ trait HasPassword
         $password = resolve(Filter::class)->apply('user_password', $password);
         $this->password = $password;
 
-        return $this->save();
+        return \Illuminate\Support\Facades\DB::transaction(fn () => $this->save());
     }
 }

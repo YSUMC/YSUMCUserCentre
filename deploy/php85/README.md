@@ -1,6 +1,38 @@
 # PHP 8.5.12 迁移副本（2026-10-22）
 
-**最新状态：生产已于 2026-10-22 02:35:50（北京时间）切换至 PHP 8.5.12，并在 98 项生产 HTTP 检查、数据清理和回滚演练通过后恢复公网访问。备份、回滚命令、当前路径与服务见 [生产切换记录](PRODUCTION-CUTOVER.md)。下文的停站限制和迁移验收表记录的是切换前阶段，不代表当前生产状态。**
+**当前操作约束：用户已在此前切换后要求停止生产 PHP 和站点，等待另行通知再开启。本次安全修复仅在本地独立分支完成，没有启动、部署或修改线上服务。下方生产切换记录属于历史验收，不代表当前应恢复访问。**
+
+## 本地安全修复（2026-10-22，尚未部署）
+
+修复分支：`codex/security-hardening-20261022`，基于 `codex/php85-compat` 的 `b04a3cf`。本轮修复：
+
+- Janus 授权码必须属于当前客户端，申请权限必须全部包含在 Passport 授权码记录的 scopes 中；已撤销客户端、无效 ID、非本人角色被拒绝。条件更新原子消费授权码，重复或并发回调只能成功一次。
+- 设备授权页转义客户端名称、授权码和错误文本；保留 oidc-provider 生成的可信表单。
+- 联盟绑定、解绑、绑定到其他角色及重映射均先核对本地源角色所有权；页面使用 Guzzle Promises 2 的 `Utils::unwrap`。
+- 密码或邮箱修改统一撤销各客户端的 access/refresh token，包括对应 access token 已过期的 refresh token；移除未完成的授权码和关联 Janus grant。Yggdrasil signout 复用相同逻辑。其他用户的授权不受影响。
+- 找回密码新增随机一次性凭据，缓存只保存摘要，绑定当前邮箱和密码状态；重发、过期、消费及改密都会使旧链接失效。POST 在用户行锁内消费。旧版已发送且不含新凭据的重置链接会被拒绝，需要重新申请；没有数据库结构迁移。
+- 头像尺寸限定 1–512，披风预览高度限定 1–1024；预览缓存包含高度，避免不同尺寸互相污染。
+- 启动器 PNG 上传转换为内部上传请求，复用网站的校验、插件过滤器、积分计算和事件；重复公共材质通过衣柜原有逻辑计费。API 成功响应格式保持不变。
+
+本地验证使用官方 PHP 8.5.12 Windows CLI，按当前 `composer.lock` 安装依赖，没有忽略平台要求；PHP 安全测试显式创建 SQLite 内存库、隔离缓存和临时存储，不读取 `.env`，拦截未模拟的 HTTP 请求。运行方式：
+
+```sh
+php vendor/bin/phpunit -c phpunit.security.xml
+php vendor/bin/phpunit --no-configuration --bootstrap vendor/autoload.php tests/Compatibility/SearchCompilerTest.php
+php tests/launcher-contract.php
+cd janus
+npm test
+```
+
+安全测试 23 项、92 条断言通过；搜索解析器 908 项、1,832 条断言通过；启动器协议 19 项检查通过。Janus TypeScript 编译通过，现有与新增测试共 29 项通过（本地 Node 24.20.0）。头像正常渲染通过，但旧 `intervention/image` 和 `blessing/texture-renderer` 仍产生 18 类 PHP 弃用提示，未屏蔽、未修改 vendor。该依赖迁移需要另行处理。
+
+尚未重新执行生产环境的 MySQL、Nginx/FPM、真实校园认证、联盟服务及启动器完整端到端联调；SQLite 测试不能替代 MySQL 并发验证。没有把本轮单元/组件测试当作恢复站点的授权。
+
+后续经授权部署时须发布此分支的 PHP 文件、插件和重新构建的 Janus `dist`，不要仅更新 PHP 二进制，也不要直接重跑绑定历史归档的 `production-stage.py`。保留生产 `.env`、密钥、上传文件和数据库；先在隔离环境完成上述待验项目，再按原备份/回滚流程安排切换。仍须等待用户明确通知才开启线上 PHP 和网站。
+
+## 历史生产切换
+
+生产曾于 2026-10-22 02:35:50（北京时间）切换至 PHP 8.5.12，在 98 项生产 HTTP 检查、数据清理和回滚演练通过后恢复公网访问。备份、回滚命令、路径与服务见 [生产切换记录](PRODUCTION-CUTOVER.md)。此后已经收到并执行停站要求。
 
 分支：`codex/php85-compat`。源码副本：`YSUMCUserCentre-php85`。服务器候选目录：`/www/wwwroot/ysumcusercentre-next`。
 

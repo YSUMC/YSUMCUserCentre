@@ -55,13 +55,16 @@ export class OIDCAdapter implements Adapter {
 
     async find(id: string): Promise<AdapterPayload | undefined> {
 
+        if (this.type === 'Client' && (!/^[1-9][0-9]{0,19}$/.test(id)
+            || BigInt(id) > 18446744073709551615n)) return undefined;
+
         const data = await this.prisma[this.model].findFirst({
             where: {
-                id: this.type == 'Client' ? parseInt(id) : id
+                id: this.type == 'Client' ? BigInt(id) : id
             }
         });
 
-        if (!data) {
+        if (!data || (this.type === 'Client' && data.revoked)) {
             return undefined;
         }
 

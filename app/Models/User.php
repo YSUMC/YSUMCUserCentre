@@ -61,6 +61,21 @@ class User extends Authenticatable implements OAuthenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $user) {
+            if ($user->isDirty(['password', 'email'])) {
+                $user->setRememberToken(\Illuminate\Support\Str::random(60));
+            }
+        });
+        static::updated(function (self $user) {
+            if ($user->wasChanged(['password', 'email'])) {
+                app(\App\Services\RevokeUserTokens::class)->revoke($user);
+                app(\App\Services\PasswordResetTokens::class)->forget($user);
+            }
+        });
+    }
+
     protected $searchStringColumns = [
         'uid',
         'email' => ['searchable' => true],
