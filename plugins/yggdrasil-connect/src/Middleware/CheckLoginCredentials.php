@@ -33,7 +33,7 @@ class CheckLoginCredentials
         $identification = $request->input('username');
         $password = $request->input('password');
 
-        Log::channel('ygg')->info("User [$identification] is try to authenticate with", ['agent' => $request->input('agent.name')]);
+        Log::channel('ygg')->info("User [$identification] is try to authenticate with", [$request->except(['username', 'password'])]);
 
         if (filter_var($identification, FILTER_VALIDATE_EMAIL)) {
             /** @var User */

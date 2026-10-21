@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Scope;
 use Illuminate\Database\QueryException;
+
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;

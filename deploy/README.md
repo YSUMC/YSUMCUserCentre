@@ -1,11 +1,21 @@
 # YSUMC 用户中心部署记录与操作说明
 
-本目录记录本次独立部署，作为根目录 `docs/YSUMC系统复用开发文档.md` 的部署补充。服务器实际目录以此处为准：`/data/program/ysumcusercentre`，不是早期方案中的 `/data/ysumc`。
+本目录作为根目录 `docs/YSUMC系统复用开发文档.md` 的部署补充。当前服务器目录为 `/www/wwwroot/ysumcusercentre`，宝塔网站为 `skin.ysumc.net`，PHP 版本为 8.1，运行目录为 `/public`。此前的 `/data/program/ysumcusercentre` 已迁移，过程与回滚位置见 [宝塔迁移记录](BAOTA-20261021.md)。
+
+2026-10-21 已重新编译并安装 PHP 8.1.34 加官方 CVE-2026-109618 / CVE-2026-109619 应急回移补丁，替换原 8.1.32。按用户要求，网站仍处于宝塔停站状态，PHP-FPM 验证完成后也已停止。补丁来源、校验值、测试与回滚记录见 [PHP 8.1 安全补丁部署记录](PHP81-SECURITY-20261021.md)；原版 8.1.34 本身不包含这次补丁。
+
+可复用源码、补丁与替换脚本见 [PHP 8.1 修复包说明](php81-repair-kit/README.md)。已在隔离目录编译 PHP 8.5.12 并核对当前依赖，部署模板、实测卡点及迁移步骤见 [PHP 8.5 升级评估](php85-assessment/README.md)。当前应用存在 Carbon 致命错误和 Composer 版本约束，尚不能直接切换到 PHP 8.5。
 
 ## 范围与当前状态
 
+2026-10-21 的启动器 1.0.2 配套公告接口已部署：`GET /api/launcher/update/releases` 返回后台已启用的正式版说明，按版本倒序并合并同版本的多平台记录，不依赖安装包是否托管在本站。PHP 语法及 48 项合同检查通过，公网响应已确认包含 1.0.1 和 1.0.0 的后台公告。原有动态更新接口仍向 1.0.0 返回 1.0.1，向 1.0.1/1.0.2 返回 204。三个原文件备份位于 `.deploy/launcher-1.0.2-updates/backup/`，未修改发布数据、站点环境配置或 Blessing Skin 声明；回滚时恢复三个文件、清理路由缓存并重载 PHP-FPM 8.1。
+
+2026-10-21 的启动器 1.0.1 配套修复已部署：`GET/POST /api/launcher/curseforge/v1/...` 验证 YSUMC 会话后代理官方 CurseForge 元数据，官方 Key 仅从服务器 `.env` 的 `YSUMC_CURSEFORGE_API_KEY` 读取，不下发给启动器。接口限定路径与只读操作，不接受任意目标地址，也不向 CurseForge 转发玩家令牌。分类、搜索、批量项目查询已通过实际 HTTPS 会话验证；匿名请求返回 401，其他游戏的查询返回 400。43 项合同检查通过。
+
+公开 `/textures/{hash}` PNG 已补充跨域响应头，验证披风返回 200 与 `Access-Control-Allow-Origin: *`。此次仅重载宝塔 PHP-FPM 8.1，没有修改 Nginx、数据库或 Blessing Skin 声明。原文件与环境配置备份在 `.deploy/launcher-1.0.1-fixes/backup/`，目录仅 root 可访问。回滚代理时应同时恢复对应配置与插件路由；服务器 Key 不应复制回任何启动器构建环境。
+
 - 主机：`root@103.39.66.86`；域名：`skin.ysumc.net`。
-- 用户确认旧站已弃用，本次建立新数据库，不迁移旧站账号。
+- 初次部署建立独立数据库；旧站账号和纹理随后已迁入，详见 [数据迁移记录](MIGRATION-20261021.md)。
 - 不开发社员审核、招新绑定、学校 SSO、活动签到、官网登录或社员准入限制。
 - 邮件暂未配置，使用 `MAIL_MAILER=log`。邮件验证及找回密码不能视为已向用户发送。
 - Janus 当前要求账号数据库中的 `verified=true`；站点关闭“强制邮箱验证”并不会改变这一要求。因此初始管理员可进行认证联调，但新注册账号的启动器授权还需先解决邮箱验证。未自动将新用户标记为已验证。
@@ -20,7 +30,7 @@
 
 | 组件 | 地址或路径 | 管理方式 |
 | --- | --- | --- |
-| Laravel / Blessing Skin | `storage/runtime/php-fpm.sock` | `ysumc-php.service` |
+| Laravel / Blessing Skin | `/tmp/php-cgi-81.sock` | 宝塔 PHP 8.1，`php-fpm-81.service` |
 | Janus | `127.0.0.1:13010` | `ysumc-janus.service` |
 | 内部检查站点 | `127.0.0.1:13011`，Host 为 `skin.ysumc.net` | 宝塔 Nginx |
 | 独立 MariaDB 10.11 | `127.0.0.1:13306` | `deploy/compose.yaml` |
@@ -33,7 +43,9 @@
 
 以上路径均相对部署根目录。`.deploy`、`.runtime`、环境文件及私钥不进入 Git。数据库仅监听本机，不复用或修改宝塔现有数据库。
 
-新站通过独立 PHP-FPM 的 `open_basedir` 和写入目录配置访问 `/data`；没有放宽全局 PHP 配置。运行时使用服务器现有 PHP 8.1。正式升级 PHP 前需验证此版本 Blessing Skin、Laravel 和插件的兼容性。
+网站使用宝塔管理的 PHP 8.1，通过 `public/.user.ini` 设置本站的 `open_basedir`、256M 内存、512M 上传和 520M POST 限制，模板为 `deploy/php.user.ini`。全局 `php.ini` 已关闭 `session.upload_progress.enabled`，本站及备用 PHP 池模板也保持关闭。原 `ysumc-php.service` 已停用并归档；仓库中的独立 PHP 服务及池配置仅作为备用模板，不要与宝塔部署步骤混用。正式升级 PHP 前需验证此版本 Blessing Skin、Laravel 和插件的兼容性。
+
+2026-10-21 按要求应用上传进度功能的临时缓解配置：在 `/www/server/php/81/etc/php.ini` 设置 `session.upload_progress.enabled = Off`，校验通过后平滑重载 `php-fpm-81.service`。已通过实际 FastCGI 请求确认该文件为 PHP-FPM 加载的配置，且全局值与本站值均为关闭；登录页和启动器 manifest 返回 200。原文件与验证结果保存在 `.deploy/backups/20261021T062302Z-disable-upload-progress/`。此次未升级 PHP，不将关闭该功能视为所有 RCE 漏洞已经修复。该选项说明见 [PHP 官方文档](https://www.php.net/manual/en/session.configuration.php#ini.session.upload-progress.enabled)。
 
 ## 上游运行时恢复
 
@@ -60,9 +72,9 @@ Janus 授权页原先引用的 Bootstrap 地址实际返回 404，本次改为�
 首次初始化前准备独立数据库配置、新站 `APP_KEY`、OAuth 密钥及 root 专属的 `.deploy/bootstrap-admin.json`。该 JSON 包含 `email`、`password`；密码要求 24–32 位随机字符。不要把密码写进命令行、Git 或聊天。
 
 ```bash
-cd /data/program/ysumcusercentre
+cd /www/wwwroot/ysumcusercentre
 docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --wait
-php -d open_basedir=/data/program/ysumcusercentre:/tmp:/proc deploy/bootstrap-site.php
+php -d open_basedir=/www/wwwroot/ysumcusercentre:/tmp:/proc deploy/bootstrap-site.php
 cd janus
 npm ci
 npx prisma generate
@@ -93,12 +105,12 @@ Janus 通过 `/yggc/client/public` 回调标记识别公开客户端。Passport 
 
 ```bash
 certbot certonly --webroot \
-  -w /data/program/ysumcusercentre/public \
+  -w /www/wwwroot/ysumcusercentre/public \
   -d skin.ysumc.net --cert-name skin.ysumc.net --non-interactive
 ```
 
-4. 证书存在后，将本目录 `nginx-domain.conf` 安装到 `/www/server/panel/vhost/nginx/ysumc-usercentre-domain.conf`。先备份本次维护配置，再执行 `nginx -t`，成功后才 reload。
-5. 不覆盖服务器上名为 `skin.ysumc.net.conf` 的旧配置：该文件实际服务其他域名。
+4. 宝塔中创建 PHP 8.1 网站 `skin.ysumc.net`，网站目录设为 `/www/wwwroot/ysumcusercentre`，运行目录设为 `/public`。证书存在后，将本目录 `nginx-domain.conf` 安装到 `/www/server/panel/vhost/nginx/skin.ysumc.net.conf`，将 `nginx-rewrite.conf` 安装到 `/www/server/panel/vhost/rewrite/skin.ysumc.net.conf`，将 `php.user.ini` 安装到站点 `public/.user.ini`。先备份配置，再执行 `nginx -t`，成功后才 reload。
+5. 当前域名配置已由宝塔网站管理，不要同时启用旧的 `ysumc-usercentre-domain.conf`，避免重复域名。早期同名但服务其他域名的历史配置已不存在；迁移时已检查没有覆盖其他站点。
 6. 将 `certbot-deploy-hook.sh` 安装到 `/etc/letsencrypt/renewal-hooks/deploy/ysumc-usercentre.sh`，权限为 755。该 hook 只处理本域名证书，先校验 Nginx 再 reload。验证 `certbot.timer` 与本域名续期演练。
 
 应使用 HTTPS 检查 OIDC discovery 的 issuer、authorization/token/device endpoints；这些地址全部应指向 `https://skin.ysumc.net/api/janus`。同时验证 Secure Cookie 下的登录及设备授权。
@@ -106,7 +118,7 @@ certbot certonly --webroot \
 ## 日常检查与变更
 
 ```bash
-systemctl status ysumc-php.service ysumc-janus.service --no-pager
+systemctl status php-fpm-81.service ysumc-janus.service --no-pager
 docker compose --env-file deploy/.env -f deploy/compose.yaml ps
 curl -f -H 'Host: skin.ysumc.net' http://127.0.0.1:13011/api/launcher/manifest
 journalctl -u ysumc-janus.service -n 100 --no-pager
@@ -116,23 +128,17 @@ journalctl -u ysumc-janus.service -n 100 --no-pager
 
 ### 插件安装目录权限
 
-后台安装、更新和删除插件会写入部署根目录的 `plugins/`，`public/plugins/` 只存放公开插件资源。`ysumc-php.service` 使用 `ProtectSystem=strict`，必须将这两个目录都列入 `ReadWritePaths`；否则即使文件属于 `www`，解压仍会报 `Read-only file system`。保留该隔离设置，只放行需要写入的目录。
+后台安装、更新和删除插件会写入部署根目录的 `plugins/`，`public/plugins/` 只存放公开插件资源。宝塔 PHP 工作进程以 `www` 身份运行，两处目录及需要更新的插件文件均须允许该用户写入。
 
-首次部署时，确保 `plugins/` 及其中的插件文件归 PHP-FPM 用户 `www:www` 所有，并允许属主读写、遍历目录。已有部署修改服务配置前先备份；应用更新后的服务文件：
+首次部署或通过 root 解压插件后，检查插件文件属主；需要时修正：
 
 ```bash
-cd /data/program/ysumcusercentre
+cd /www/wwwroot/ysumcusercentre
 chown -R www:www plugins
 chmod -R u+rwX plugins
-install -m 644 deploy/ysumc-php.service /etc/systemd/system/ysumc-php.service
-systemd-analyze verify /etc/systemd/system/ysumc-php.service
-systemctl daemon-reload
-systemctl restart ysumc-php.service
-systemctl is-active ysumc-php.service
-systemctl show ysumc-php.service -p ProtectSystem -p ReadWritePaths
 ```
 
-验收时应在 PHP 服务的挂载命名空间内以 `www` 身份检查写入及 ZIP 解压；普通 root shell 下可写不能证明 PHP 可写。新增插件和更新已有插件都需要验证。
+验收时应通过实际 PHP-FPM 检查 ZIP 解压及覆盖写入，普通 root shell 下可写不能证明 PHP 可写。当前宝塔部署不使用 `ReadWritePaths`；若手动启用备用的独立 PHP 服务，其 `ProtectSystem=strict` 仍需配套目录写入白名单。
 
 2026-10-21 已修复线上插件上传时报 `ZipArchive::extractTo(.../plugins/yggdrasil-connect/LICENSE): Read-only file system`：为 `plugins/` 增加 `ReadWritePaths`，将该根目录从 `root:root` 改为 `www:www`（保留 755），并同步服务器的部署服务文件。已有插件内容的权限未改动。配置及目录原属主、模式备份在 `.deploy/backups/20261021T054427Z-plugin-permissions/`。PHP 服务重启后状态正常，已在其挂载命名空间内以 `www` 验证临时目录创建、ZIP 解压、文件覆盖、清理及现有插件路径可写；HTTPS 登录页与启动器 manifest 均返回 200。此次未重新上传业务插件。
 

@@ -25,7 +25,7 @@ class CheckAccessToken
         if (!$validation->fails()) {
             $accessToken = $request->input('accessToken');
             try {
-                Log::channel('ygg')->info('User is authenticating with Access Token');
+                Log::channel('ygg')->info('User is authenticating with Access Token', [$accessToken]);
                 $token = new AccessToken($accessToken);
                 $valid = $request->is('api/yggdrasil/authserver/refresh') ? $token->isRefreshable() : $token->canJoinServer();
                 if ($valid) {
@@ -36,7 +36,7 @@ class CheckAccessToken
                     throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.token.invalid'));
                 }
             } catch (ForbiddenOperationException $e) {
-                Log::channel('ygg')->info('Access Token is invalid', ['exception' => get_class($e)]);
+                Log::channel('ygg')->info("Access Token [$accessToken] is invalid", [$e->getMessage()]);
                 if ($request->is('api/yggdrasil/authserver/invalidate')) {
                     // invalidate 请求不管 Access Token 是否有效，都直接返回 204
                     return response()->noContent();

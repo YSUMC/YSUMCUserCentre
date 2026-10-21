@@ -100,6 +100,7 @@ class TextureController extends Controller
             ->withHeaders([
                 'Content-Type' => 'image/png',
                 'Content-Length' => $disk->size($hash),
+                'Access-Control-Allow-Origin' => '*',
             ])
             ->setLastModified($lastModified);
     }

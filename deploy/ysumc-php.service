@@ -4,18 +4,18 @@ After=network.target docker.service
 
 [Service]
 Type=simple
-ExecStart=/www/server/php/81/sbin/php-fpm --nodaemonize --fpm-config /data/program/ysumcusercentre/deploy/php-fpm.conf
+ExecStart=/www/server/php/81/sbin/php-fpm --nodaemonize --fpm-config /www/wwwroot/ysumcusercentre/deploy/php-fpm.conf
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=/data/program/ysumcusercentre/storage
-ReadWritePaths=/data/program/ysumcusercentre/bootstrap/cache
-ReadWritePaths=/data/program/ysumcusercentre/plugins
-ReadWritePaths=/data/program/ysumcusercentre/public/plugins
-ReadWritePaths=/data/program/ysumcusercentre/public/lang
+ReadWritePaths=/www/wwwroot/ysumcusercentre/storage
+ReadWritePaths=/www/wwwroot/ysumcusercentre/bootstrap/cache
+ReadWritePaths=/www/wwwroot/ysumcusercentre/plugins
+ReadWritePaths=/www/wwwroot/ysumcusercentre/public/plugins
+ReadWritePaths=/www/wwwroot/ysumcusercentre/public/lang
 UMask=0027
 
 [Install]

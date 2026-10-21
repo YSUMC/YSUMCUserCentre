@@ -12,6 +12,7 @@ use SITMinecraft\Launcher\Http\Controllers\AnnouncementController as PublicAnnou
 use SITMinecraft\Launcher\Http\Controllers\ManifestController;
 use SITMinecraft\Launcher\Http\Controllers\PackController;
 use SITMinecraft\Launcher\Http\Controllers\SkinController;
+use SITMinecraft\Launcher\Http\Controllers\CurseForgeController;
 use SITMinecraft\Launcher\Http\Controllers\UpdateController;
 use SITMinecraft\Launcher\Manifest\PackStore;
 use SITMinecraft\Launcher\Update\ReleaseRules;
@@ -65,6 +66,10 @@ return function ($plugin) {
                 $router->get('manifest', [ManifestController::class, 'show'])
                     ->name('sitmc-launcher.manifest');
 
+                $router->match(['GET', 'POST'], 'curseforge/{path}', [CurseForgeController::class, 'proxy'])
+                    ->where('path', 'v1/[A-Za-z0-9/-]+')
+                    ->name('sitmc-launcher.curseforge');
+
                 $router->get('packs/{instanceId}/{revision}', [PackController::class, 'show'])
                     ->where(['instanceId' => '[A-Za-z0-9_-]+', 'revision' => '[0-9]+'])
                     ->name('sitmc-launcher.pack');
@@ -77,6 +82,9 @@ return function ($plugin) {
 
                 $router->get('update/versions', [UpdateController::class, 'versions'])
                     ->name('sitmc-launcher.update.versions');
+
+                $router->get('update/releases', [UpdateController::class, 'releases'])
+                    ->name('sitmc-launcher.update.releases');
 
                 $router->get('update/{target}/{arch}/{currentVersion}', [UpdateController::class, 'dynamic'])
                     ->where([

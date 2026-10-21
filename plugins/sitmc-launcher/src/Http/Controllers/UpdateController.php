@@ -38,6 +38,12 @@ final class UpdateController
         return self::json($builder->encode($builder->versions($this->repository->rows(), $request->root())));
     }
 
+    public function releases(): Response
+    {
+        $builder = new UpdateBuilder();
+        return self::json($builder->encode($builder->releases($this->repository->rows())));
+    }
+
     /**
      * Dynamic updater document of the newest release that applies to the
      * requested platform, or 204 when the installed build is already up to date.
