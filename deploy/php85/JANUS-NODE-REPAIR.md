@@ -1,4 +1,6 @@
-# Janus Node 路径修复方案（待后续维护窗口执行）
+# Janus Node 路径修复方案与历史验证
+
+**最新执行状态**：用户随后明确授权修复生产 Janus，现已接入新安装的 Node 26.12.1 并重启验证通过。当前配置、验证和备份见 [JANUS-NODE26-APPLIED.md](JANUS-NODE26-APPLIED.md)。下文保留先前 Node 22 候选方案及历史故障记录，不代表当前生产仍在重启失败。
 
 本轮只验证候选环境，未安装生产 drop-in、未 daemon-reload、未手动重启生产 Janus、未恢复皮肤站访问。生产 unit 的 `ExecStart=/usr/bin/node dist/main.js` 指向不存在的文件；原进程实际使用的 `/www/server/nodejs/v22.18.0/bin/node` 也已被删除。
 

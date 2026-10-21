@@ -2,7 +2,9 @@
 
 分支：`codex/php85-compat`。源码副本：`YSUMCUserCentre-php85`。服务器候选目录：`/www/wwwroot/ysumcusercentre-next`。
 
-本轮只修改候选副本；生产 `skin.ysumc.net` 保持宝塔停站页，PHP 8.1 FPM 保持停止。未切换站点根目录、PHP socket、生产数据库或 OAuth 密钥。生产 296 个基线文件 SHA-256 未变。
+PHP 迁移验收阶段只修改候选副本；生产 `skin.ysumc.net` 保持宝塔停站页，PHP 8.1 FPM 保持停止。未切换站点根目录、PHP socket、生产数据库或 OAuth 密钥。生产 296 个基线文件 SHA-256 未变。
+
+后续运维更新：生产 Janus 已按用户新授权切换到 Node 26.12.1 并重启验证，详见 [修复记录](JANUS-NODE26-APPLIED.md)。PHP 8.5 候选已独立启动供本机预览；生产站点依然停用、PHP 未切换。下列迁移验收表及 `maintenance-20261022` 证据保留当时状态；Janus 当前状态以 `evidence/janus-node26-20261022/verification.json` 为准。
 
 ## 已完成的适配
 
