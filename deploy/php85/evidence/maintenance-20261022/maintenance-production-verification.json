@@ -1,0 +1,16 @@
+{
+  "production_files_checked": 296,
+  "changed": [],
+  "production_php81": "inactive",
+  "public_stop_page_exact_match": true,
+  "production_janus_pid": 1163747,
+  "production_janus_pid_unchanged": true,
+  "production_janus_unit_unchanged": true,
+  "candidate_units": {
+    "ysumc-php85-candidate-fpm": "inactive",
+    "ysumc-php85-candidate-nginx": "inactive",
+    "ysumc-php85-candidate-janus": "inactive",
+    "ysumc-php85-candidate-rollback-probe": "inactive"
+  },
+  "candidate_database_running": false
+}

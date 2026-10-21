@@ -11,9 +11,7 @@
   ],
   "require": {
     "php": "^8.1",
-    "illuminate/support": "^13.0",
-    "hoa/compiler": "^3.17",
-    "sanmai/hoa-protocol": "^1.17"
+    "illuminate/support": "^13.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.0",
@@ -38,5 +36,5 @@
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
-  "version": "1.3.0"
+  "version": "1.3.1"
 }

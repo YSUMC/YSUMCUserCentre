@@ -143,7 +143,13 @@ class BuildColumnsVisitor extends Visitor
             return $this->builder->where($where[0], $where[1], $where[2], $this->boolean);
         }
 
-        return $this->builder->where($wheres->toArray(), null, null, $this->boolean);
+        // Laravel 13 supplies a named boolean when expanding array clauses; a fourth
+        // positional argument collides with it. Preserve each clause's own connective.
+        return $this->builder->where(function ($builder) use ($wheres) {
+            foreach ($wheres as [$column, $operator, $value, $boolean]) {
+                $builder->where($column, $operator, $value, $boolean);
+            }
+        }, null, null, $this->boolean);
     }
 
     protected function buildSearchWhereClause(SoloSymbol $solo, $column): array
@@ -219,10 +225,10 @@ class BuildColumnsVisitor extends Visitor
         $column = $rule->qualifyColumn($this->builder);
         $exclude = in_array($query->operator, ['!=', 'not in']);
 
-        return $this->builder->where([
-            [$column, ($exclude ? '<' : '>='), $start, $this->boolean],
-            [$column, ($exclude ? '>' : '<='), $end, $this->boolean],
-        ], null, null, $this->boolean);
+        return $this->builder->where(function ($builder) use ($column, $exclude, $start, $end) {
+            $builder->where($column, $exclude ? '<' : '>=', $start);
+            $builder->where($column, $exclude ? '>' : '<=', $end, $exclude ? 'or' : 'and');
+        }, null, null, $this->boolean);
     }
 
     protected function buildBasicQuery(QuerySymbol $query, ColumnRule $rule)

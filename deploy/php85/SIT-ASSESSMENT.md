@@ -17,7 +17,9 @@
 | CSV 导出 | DataExportController 两次 fputcsv 未指定 escape 参数 | PHP 8.4 起弃用隐式 escape；改为 `fputcsv($handle, $fields, escape: '')`，回归中文 BOM、引号、逗号、换行与空值。 |
 | Janus | 仓库含共享 DB 的独立 Node 组件 | PHP 升级之外还要独立构建 Node、生成 Prisma Client、统一 issuer、回调与密钥；复用本轮设备码／撤销测试思路，不能据 PHP lint 判断完成。 |
 
-建议在 SIT 自己的新分支中分三批提交：先补齐可重复构建所需的依赖与插件；再合并框架、OAuth、Twig、文件系统和 JWT 的核心适配；最后处理 OA、活动、CSV、SIT 插件并补业务测试。YSUMC 本次的 18 项集成测试、38 项 HTTP 检查可作为核心验收模板，但测试数据库、测试账号和品牌／路由断言要改成 SIT 的独立环境。
+建议在 SIT 自己的新分支中分三批提交：先补齐可重复构建所需的依赖与插件；再合并框架、OAuth、Twig、文件系统和 JWT 的核心适配；最后处理 OA、活动、CSV、SIT 插件并补业务测试。YSUMC 当前 933 项 PHP 回归（包括 899 组解析器对照）、每轮 38 项 HTTP 检查可作为核心验收模板，但测试数据库、测试账号和品牌／路由断言要改成 SIT 的独立环境。
+
+本轮已移除 13 个停止维护搜索依赖。SIT 可以源码复用 `packages/lorisleiva-laravel-search-string` 本地 1.3.1、锁定依赖和对应搜索测试，保留它自己的可搜索字段与数据权限。Janus 的版本化 Node 路径、SHA-256 校验和 systemd 覆盖方案也可复用，但不能推断 SIT 存在相同的路径故障；运行用户、目录、架构、现有 drop-in 和 issuer 仍需由 SIT 自己确认。本次未修改或部署 SIT。
 
 本次没有承诺 SIT 已升级完成；已经证明共同核心在 PHP 8.5.12 可运行，并明确定位了源码中需要单独处理的部分。是否通过正式升级验收，要以 SIT 完整源码和它自己的隔离测试结果为准。
 

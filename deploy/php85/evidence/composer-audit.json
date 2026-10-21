@@ -1,19 +1,5 @@
 {
     "advisories": [],
-    "abandoned": {
-        "hoa/compiler": null,
-        "hoa/consistency": null,
-        "hoa/event": null,
-        "hoa/exception": null,
-        "hoa/file": null,
-        "hoa/iterator": null,
-        "hoa/math": null,
-        "hoa/regex": null,
-        "hoa/stream": null,
-        "hoa/ustring": null,
-        "hoa/visitor": null,
-        "hoa/zformat": null,
-        "sanmai/hoa-protocol": null
-    },
+    "abandoned": [],
     "filter": []
 }

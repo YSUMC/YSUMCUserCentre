@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Lorisleiva\LaravelSearchString\Compiler\CompilerInterface;
-use Lorisleiva\LaravelSearchString\Compiler\HoaCompiler;
+use Lorisleiva\LaravelSearchString\Compiler\NativeCompiler;
 use Lorisleiva\LaravelSearchString\Exceptions\InvalidSearchStringException;
 use Lorisleiva\LaravelSearchString\Options\SearchStringOptions;
 
@@ -24,7 +24,7 @@ class SearchStringManager
 
     public function getCompiler(): CompilerInterface
     {
-        return new HoaCompiler($this);
+        return new NativeCompiler();
     }
 
     public function getGrammarFile(): string
