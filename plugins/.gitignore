@@ -1,2 +1,6 @@
 *
 !.gitignore
+!sitmc-launcher/
+!sitmc-launcher/**
+!yggdrasil-connect/
+!yggdrasil-connect/**

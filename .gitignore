@@ -1,0 +1,13 @@
+.env
+/vendor/
+/storage/
+/bootstrap/cache/
+/janus/node_modules/
+/janus/dist/
+/janus/.env
+/janus/prisma/schema.prisma
+/oauth-private.key
+/oauth-public.key
+*.log
+/.deploy/
+/.runtime/

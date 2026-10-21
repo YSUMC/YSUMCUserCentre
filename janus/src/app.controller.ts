@@ -1,6 +1,7 @@
 import { Controller, All, Req, Res, Get, Redirect } from '@nestjs/common';
 import { Request, Response } from "express";
 import { AppService } from './app.service';
+import { providerPath } from './http-config';
 
 @Controller()
 export class AppController {
@@ -33,9 +34,9 @@ export class AppController {
     }
   } */
 
-  @All("/*")
+  @All("{*path}")
   getHello(@Req() req: Request, @Res() res: Response): Promise<void> {
-  req.url = req.originalUrl.replace("/api/janus", "");
+  req.url = providerPath(req.originalUrl);
   return this.appService.callback(req, res);
   }
 }

@@ -1,0 +1,19 @@
+name: ysumc-usercentre
+
+services:
+  database:
+    image: ${YSUMC_DATABASE_IMAGE:-mariadb:10.11}
+    restart: unless-stopped
+    env_file:
+      - ../.deploy/database.env
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - ../.runtime/mysql:/var/lib/mysql
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

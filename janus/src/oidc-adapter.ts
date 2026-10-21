@@ -65,6 +65,23 @@ export class OIDCAdapter implements Adapter {
             return undefined;
         }
 
+        // Blessing Skin revokes tokens in Passport's tables. Janus must honor
+        // that state before accepting its separate refresh-token payload.
+        if (this.type === 'RefreshToken') {
+            const refreshToken = await this.prisma.passportRefreshToken.findUnique({
+                where: { id },
+            });
+            if (!refreshToken || refreshToken.revoked) {
+                return undefined;
+            }
+            const accessToken = await this.prisma.passportAccessToken.findUnique({
+                where: { id: refreshToken.access_token_id },
+            });
+            if (!accessToken || accessToken.revoked) {
+                return undefined;
+            }
+        }
+
         const accountId = data.payload?.accountId;
         if (accountId) {
             const user = await this.prisma.user.findFirst({
@@ -78,7 +95,7 @@ export class OIDCAdapter implements Adapter {
             }
         }
 
-        return data.payload;
+        return this.restorePayload(data);
     }
 
     async findByUserCode(userCode: string): Promise<AdapterPayload | undefined> {
@@ -89,7 +106,7 @@ export class OIDCAdapter implements Adapter {
         });
 
         if (data) {
-            return data.payload;
+            return this.restorePayload(data);
         }
     }
 
@@ -104,7 +121,23 @@ export class OIDCAdapter implements Adapter {
             return undefined;
         }
 
-        return data.payload;
+        return this.restorePayload(data);
+    }
+
+    private restorePayload(data: {
+        payload: unknown;
+        consumed?: boolean;
+        updated_at?: Date;
+    }): AdapterPayload {
+        const payload = data.payload as AdapterPayload;
+        if (!data.consumed) {
+            return payload;
+        }
+        // oidc-provider uses this timestamp to reject replayed one-use tokens.
+        return {
+            ...payload,
+            consumed: Math.floor((data.updated_at?.getTime() ?? Date.now()) / 1000),
+        };
     }
 
     async consume(id: string): Promise<void> {

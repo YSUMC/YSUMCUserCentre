@@ -4,8 +4,11 @@
   "description": "Standalone Yggdrasil Connect server for Blessing Skin.",
   "private": true,
   "license": "MIT",
+  "packageManager": "npm@10.9.2",
+  "engines": { "node": ">=22.12.0" },
   "scripts": {
     "build": "nest build",
+    "test": "npm run build && node --test test/*.test.cjs",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

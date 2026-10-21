@@ -15,8 +15,8 @@ export const ACCESS_TOKEN_NAME: string = "Yggdrasil Connect";
 @Injectable()
 export class OIDCProviderService {
     // 填写皮肤站站点名和站点图标 Url
-    private readonly siteName = 'SIT-Minecraft';
-    private readonly favicon = 'https://skin.sitmc.club/app/3.ico';
+    private readonly siteName = 'YSUMC';
+    private readonly favicon = 'https://skin.ysumc.net/ysumc/logo.svg';
     
     generateHtml(title: string, content: string) {
         return `<!DOCTYPE html>
@@ -24,408 +24,56 @@ export class OIDCProviderService {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://www.bootcdn.cn/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="${this.siteUrl}/app/style.7eb5d06.css" rel="stylesheet">
 
-    <link href="/app/style.7eb5d06.css" rel="stylesheet" crossorigin="anonymous">
+
 
     <link rel="stylesheet"
           href="https://unpkg.com/@fortawesome/fontawesome-free@5.15.4/css/all.min.css"
           crossorigin>
 
 
-    <link rel="shortcut icon" href="https://skin.sitmc.club/app/3.ico">
+    <link rel="shortcut icon" href="https://skin.ysumc.net/ysumc/logo.svg">
                     <title>${title} - ${this.siteName}</title>
-                        <style>
-
-@font-face {
-
-    font-family:'Minecraft';
-
-    src:url('https://cdn.jsdelivr.net/gh/South-Paw/typeface-minecraft@master/public/MinecraftRegular-Bmg3.woff2')
-    format('woff2');
-
-}
-
-
-/* ==============================
-   Eduroam 登录页 Minecraft主题
-============================== */
-
-
-body.login-page {
-
-
-    background:#1a1a1a!important;
-
-}
-
-
-/* 登录整体 */
-
-.login-box {
-
-
-    width:360px;
-
-}
-
-
-
-/* Logo */
-
-.login-logo,
-.login-logo a {
-
-
-    font-family:'Minecraft',sans-serif!important;
-
-    color:#fff!important;
-
-    text-shadow:
-    3px 3px 0 #000!important;
-
-}
-
-
-
-.login-logo a:hover {
-
-
-    text-decoration:none;
-
-}
-
-
-
-/* 卡片 */
-
-.login-box .card {
-
-
-    background:#2b2b2b!important;
-
-    border:2px solid #000!important;
-
-    border-radius:0!important;
-
-
-    box-shadow:
-    4px 4px 0 rgba(0,0,0,.6)!important;
-
-
-}
-
-
-
-/* 内容 */
-
-.login-card-body {
-
-
-    background:transparent!important;
-
-
-}
-
-
-
-/* 提示文字 */
-
-
-.login-box-msg {
-
-
-    color:#fff!important;
-
-    font-family:'Minecraft',sans-serif;
-
-    text-shadow:
-    1px 1px #000;
-
-
-}
-
-
-
-/* 错误提示 */
-
-.alert {
-
-
-    border-radius:0!important;
-
-
-}
-
-
-
-.alert-danger {
-
-
-    background:#661111!important;
-
-    border:2px solid #aa3333!important;
-
-    color:white!important;
-
-
-}
-
-
-
-.alert-success {
-
-
-    background:#164d16!important;
-
-    border:2px solid #3c8527!important;
-
-    color:white!important;
-
-
-}
-
-
-
-
-/* 输入框 */
-
-
-.login-box .form-control {
-
-
-    background:
-    rgba(255,255,255,.08)!important;
-
-
-    border:
-
-    1px solid rgba(255,255,255,.25)!important;
-
-
-    color:white!important;
-
-
-    border-radius:0!important;
-
-
-}
-
-
-
-.login-box .form-control::placeholder {
-
-
-    color:#aaa!important;
-
-
-}
-
-
-
-.login-box .form-control:focus {
-
-
-    background:
-    rgba(255,255,255,.15)!important;
-
-
-    border-color:#3c8527!important;
-
-
-    box-shadow:
-    0 0 0 .2rem rgba(60,133,39,.25)!important;
-
-
-}
-
-
-
-
-/* 输入框图标 */
-
-
-.login-box .input-group-text {
-
-
-    background:
-    rgba(255,255,255,.08)!important;
-
-
-    border:
-
-    1px solid rgba(255,255,255,.25)!important;
-
-
-    color:#ccc!important;
-
-
-    border-radius:0!important;
-
-
-}
-
-
-
-
-/* 所有按钮 */
-
-.login-box .btn {
-
-
-    border-radius:0!important;
-
-    font-family:'Minecraft',sans-serif!important;
-
-
-}
-
-
-
-/* 登录按钮 */
-
-
-.login-box .btn-primary {
-
-
-    background:#3c8527!important;
-
-
-    border:
-
-    2px solid #1e4513!important;
-
-
-    color:white!important;
-
-
-    box-shadow:
-
-
-    inset -2px -4px rgba(0,0,0,.25),
-
-
-    inset 2px 2px rgba(255,255,255,.35)!important;
-
-
-}
-
-
-
-.login-box .btn-primary:hover {
-
-
-    background:#4aa330!important;
-
-
-    transform:scale(1.02);
-
-
-}
-
-
-
-/* 其它登录按钮 */
-
-
-.login-box a.bg-light {
-
-
-    background:#222!important;
-
-
-    border:
-
-    2px solid #555!important;
-
-
-    color:white!important;
-
-
-}
-
-
-
-.login-box a.bg-light:hover {
-
-
-    background:#333!important;
-
-
-}
-
-
-
-/* 提示框 */
-
-
-.login-box .callout {
-
-
-    background:#222!important;
-
-
-    border-left:
-
-    5px solid #3c8527!important;
-
-
-    color:#ccc!important;
-
-
-    padding:15px;
-
-
-}
-
-
-
-.login-box .callout a {
-
-
-    color:#3c8527!important;
-
-
-}
-
-
-
-.login-box .callout a:hover {
-
-
-    color:#4aa330!important;
-
-
-}
-
-
-
-/* 图标 */
-
-.login-box i {
-
-
-    color:#ccc;
-
-
-}
-
-
-
-</style>
+                        <link rel="stylesheet" href="${this.siteUrl}/ysumc/theme.css">
+                        <link rel="stylesheet" href="${this.siteUrl}/ysumc/layout.css?v=20261021-1">
 
                 </head>
-                <body class="hold-transition login-page">
-                    <div class="login-box">
-                        <div class="login-logo">
-                            <a href="${this.siteUrl}">${this.siteName}</a>
-                        </div>
-                        <div class="card">
-                            <div class="card-body login-card-body">
-                                ${content}
+                <body class="hold-transition login-page ysumc-auth-page">
+                    <header class="ysumc-auth-header">
+                        <a href="https://ysumc.net"><img src="${this.siteUrl}/ysumc/wordmark.svg" alt="燕山大学 Minecraft 学生同好者协会"></a>
+                        <a class="ysumc-home-link" href="${this.siteUrl}">返回首页 ↗</a>
+                    </header>
+                    <div class="ysumc-auth-layout">
+                        <section class="ysumc-intro">
+                            <div>
+                                <p class="ysumc-eyebrow">YSUMC / SKIN CENTER</p>
+                                <h1>方块虽小，<br>亦是精彩之源。</h1>
+                                <p>Block is small, Dream is big.</p>
+                            </div>
+                            <div class="ysumc-intro-caption">
+                                <p>授权启动器使用你的游戏账号与角色。</p>
+                                <p>完成后，返回启动器继续你的冒险。</p>
+                            </div>
+                        </section>
+                        <div class="login-box">
+                            <div class="login-logo">
+                                <span class="ysumc-eyebrow">YSUMC / CONNECT</span>
+                                <h2>${title}</h2>
+                            </div>
+                            <div class="card">
+                                <div class="card-body login-card-body">${content}</div>
                             </div>
                         </div>
                     </div>
+                    <footer class="ysumc-footer">
+                        <div class="ysumc-footer-brand">
+                            <strong>YSUMC</strong><span>燕山大学 Minecraft 学生同好者协会</span>
+                        </div>
+                        <div class="ysumc-footer-meta">
+                            <div id="copyright-text" class="ysumc-powered-by">Powered by <a href="https://github.com/bs-community/blessing-skin-server" target="_blank" rel="noopener noreferrer">Blessing Skin Server</a>.</div>
+                        </div>
+                    </footer>
                 </body>
             </html>`
     }

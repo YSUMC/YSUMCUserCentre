@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Scope;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;
@@ -34,7 +36,7 @@ class AuthServiceProvider extends ServiceProvider
             'Player.Read' => 'auth.oauth.scope.player.read',
             'Player.ReadWrite' => 'auth.oauth.scope.player.readwrite',
             'Closet.Read' => 'auth.oauth.scope.closet.read',
-            'Closet.ReadWrtie' => 'auth.oauth.scope.closet.readwrite',
+            'Closet.ReadWrite' => 'auth.oauth.scope.closet.readwrite',
             'UsersManagement.Read' => 'auth.oauth.scope.users-management.read',
             'UsersManagement.ReadWrite' => 'auth.oauth.scope.users-management.readwrite',
             'PlayersManagement.Read' => 'auth.oauth.scope.players-management.read',
@@ -45,7 +47,17 @@ class AuthServiceProvider extends ServiceProvider
             'ReportsManagement.ReadWrite' => 'auth.oauth.scope.reports-management.readwrite',
         ];
 
-        $scopes = Cache::get('scopes', []);
+        try {
+            $scopes = Cache::rememberForever('scopes', function () {
+                return Scope::pluck('description', 'name')->toArray();
+            });
+        } catch (QueryException $exception) {
+            // The database or scopes table may not exist during initial setup.
+            if (!in_array((int) ($exception->errorInfo[1] ?? 0), [1049, 1146], true)) {
+                throw $exception;
+            }
+            $scopes = [];
+        }
 
         Passport::tokensCan(array_merge($defaultScopes, $scopes));
 

@@ -1,0 +1,325 @@
+/* Layout shared by the skin centre and Janus authorization pages. */
+.dark-mode .form-control-plaintext {
+    color: #f1f1f1;
+}
+.dark-mode .main-sidebar .brand-link img {
+    background: #f1f1f1;
+    border: 1px solid #f1f1f1;
+    border-radius: 50%;
+}
+.content-wrapper .card-primary:not(.card-outline) > .card-header {
+    background: #f5fafa;
+    color: #3b3b3b;
+    border-top: 3px solid #66cccc;
+}
+.content-wrapper .card-warning:not(.card-outline) > .card-header {
+    background: #faf1e9;
+    color: #3b3b3b;
+    border-top: 3px solid #d36839;
+}
+.content-wrapper .card-danger:not(.card-outline) > .card-header {
+    background: #9c292d;
+    color: #fff;
+}
+.dark-mode .content-wrapper .card-primary:not(.card-outline) > .card-header,
+.dark-mode .content-wrapper .card-warning:not(.card-outline) > .card-header {
+    background: #3b3b3b;
+    color: #ededed;
+}
+.main-header .navbar-brand {
+    color: #3b3b3b !important;
+}
+.dark-mode .main-header .navbar-brand {
+    color: #ededed !important;
+}
+.layout-top-nav .main-header .navbar-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+@media (max-width: 575px) {
+    .layout-top-nav .main-header > .container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 12px 8px;
+    }
+    .layout-top-nav .main-header .navbar-header {
+        grid-column: 1 / -1;
+    }
+    .layout-top-nav .main-header .navbar-nav .nav-link {
+        padding-inline: 8px;
+        white-space: nowrap;
+    }
+}
+.content-wrapper .info-box.bg-teal {
+    background: #66cccc !important;
+    color: #203c3d !important;
+}
+.content-wrapper .info-box.bg-maroon {
+    background: #3b3b3b !important;
+    color: #f1f1f1 !important;
+}
+.content-wrapper .btn.bg-gradient-primary {
+    background: #66cccc !important;
+    border-color: #66cccc !important;
+    color: #203c3d !important;
+    box-shadow: none;
+}
+.content-wrapper .card-footer:has(> #ygg-dnd-button) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.content-wrapper .card-footer:has(> #ygg-dnd-button) > .btn {
+    margin: 0 !important;
+    white-space: normal;
+}
+.dark-mode code {
+    color: #a0e0e0;
+}
+:root {
+    --ysu-line: #dedede;
+    --ysu-gutter: clamp(20px, 4vw, 48px);
+}
+
+body { line-height: 1.6; }
+img { max-width: 100%; }
+button, input, select, textarea { max-width: 100%; }
+.btn { line-height: 1.5; }
+.btn + .btn { margin-left: 4px; }
+.btn-block + .btn-block { margin-left: 0; }
+.btn-primary:hover, .btn-primary:focus {
+    background: #59b3b3 !important;
+    border-color: #59b3b3 !important;
+}
+.form-control:not(textarea) { min-height: 42px; height: auto; }
+.form-control-sm:not(textarea) { min-height: 34px; }
+.form-control { border-color: #c9c9c9; }
+.input-group { align-items: stretch; }
+.input-group > .form-control { min-width: 0; }
+.input-group-text { background: #f1f1f1; border-color: #c9c9c9; }
+.form-group { margin-bottom: 20px; }
+label { margin-bottom: 8px; line-height: 1.5; }
+.alert { padding: 14px 18px; line-height: 1.65; overflow-wrap: anywhere; }
+.text-muted { color: #666 !important; }
+
+/* The upstream login page has height:100vh and flex-direction:column.
+   Use a normal document flow so long forms and the attribution can scroll. */
+body.ysumc-auth-page {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 0;
+    background: var(--ysu-paper);
+}
+.ysumc-auth-header, .ysumc-auth-layout, .ysumc-auth-page > .ysumc-footer {
+    width: min(100%, 1280px);
+    margin-inline: auto;
+}
+.ysumc-auth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px var(--ysu-gutter);
+}
+.ysumc-auth-header img { display: block; width: 250px; }
+.ysumc-home-link {
+    flex-shrink: 0;
+    padding: 8px 0;
+    font-size: 14px;
+    text-decoration: none;
+}
+.ysumc-auth-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(32px, 5vw, 72px);
+    padding: 16px var(--ysu-gutter) 48px;
+}
+.ysumc-auth-layout .ysumc-intro {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    max-width: none;
+    min-height: 480px;
+    padding: clamp(28px, 4vw, 48px);
+    background: #3b3b3b;
+    color: #f1f1f1;
+}
+.ysumc-auth-layout .ysumc-intro h1 {
+    margin: 28px 0 20px;
+    font-size: clamp(32px, 3.6vw, 48px);
+    line-height: 1.4;
+}
+.ysumc-auth-layout .ysumc-eyebrow { color: #66cccc; margin: 0; }
+.ysumc-intro .ysumc-intro-caption {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #646464;
+    color: #ededed;
+    font-size: 14px;
+}
+.ysumc-intro p:last-child { margin-bottom: 0; }
+.ysumc-auth-layout .login-box {
+    width: 100%;
+    max-width: 480px;
+    min-width: 0;
+    margin: 0;
+}
+.ysumc-auth-layout .login-logo { margin: 0 0 24px; text-align: left; }
+.ysumc-auth-layout .login-logo .ysumc-eyebrow { color: #666; font-family: inherit; }
+.ysumc-auth-layout .login-logo h2 {
+    margin: 12px 0 0;
+    color: #3b3b3b;
+    font-size: 30px;
+    line-height: 1.4;
+}
+.ysumc-auth-layout .card { margin: 0; border: 1px solid var(--ysu-line); }
+.ysumc-auth-layout .login-card-body { padding: clamp(24px, 3vw, 36px); }
+.ysumc-auth-layout .login-box-msg { padding: 0 0 24px; text-align: left; }
+.ysumc-auth-layout .login-card-body main { min-width: 0; }
+.ysumc-auth-layout .login-card-body p:last-child { margin-bottom: 0; }
+.ysumc-auth-layout .login-card-body .row { row-gap: 12px; }
+.ysumc-auth-layout .login-card-body .btn { white-space: normal; }
+
+/* Public landing page: the same square blocks, gutters and palette as ysu_web. */
+.ysumc-header, .ysumc-footer { max-width: 1280px; padding-inline: var(--ysu-gutter); }
+.ysumc-header { padding-block: 28px; }
+.ysumc-header img { display: block; width: 270px; }
+.ysumc-header nav { gap: 24px; align-items: center; font-size: 14px; }
+.ysumc-home-grid { max-width: 1280px; padding-inline: var(--ysu-gutter); gap: 20px; }
+.ysumc-hero { padding: clamp(28px, 4vw, 48px); }
+.ysumc-hero h1 { font-size: clamp(32px, 4vw, 52px); margin-block: 24px; }
+.ysumc-home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.ysumc-home-actions .btn { margin: 0; }
+.ysumc-emblem { min-width: 0; padding: 32px; }
+.ysumc-emblem img { width: 70%; max-width: 200px; }
+.ysumc-tile { display: flex; flex-direction: column; padding: 28px; min-width: 0; }
+.ysumc-tile h2 { margin: 18px 0 12px; }
+.ysumc-tile p { font-size: 14px; line-height: 1.8; margin-bottom: 24px; }
+.ysumc-tile span:last-child { margin-top: auto; }
+.ysumc-tile:hover { text-decoration: none; outline: 1px solid #66cccc; outline-offset: -1px; }
+
+/* Shared product attribution stays visible at every viewport size. */
+.ysumc-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px 32px;
+    margin: 36px auto 0;
+    padding-block: 24px 32px;
+    font-size: 12px;
+    line-height: 1.8;
+}
+.ysumc-footer-brand { color: #555; }
+.ysumc-footer-brand strong { display: block; font-size: 14px; font-weight: 600; }
+.ysumc-footer-meta { max-width: 580px; text-align: right; overflow-wrap: anywhere; }
+#copyright-text {
+    display: block !important;
+    float: none !important;
+    color: inherit;
+    visibility: visible !important;
+}
+#copyright-text a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.ysumc-footer #copyright-text { color: #555; }
+
+/* Keep AdminLTE navigation behavior while giving the workspace room to breathe. */
+.main-header { min-height: 64px; border-bottom: 1px solid var(--ysu-line); }
+.main-header .nav-link { color: #3b3b3b !important; }
+.main-sidebar { border-right: 1px solid var(--ysu-line); }
+.main-sidebar .brand-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--ysu-line);
+    font-size: 16px;
+    text-decoration: none;
+}
+.main-sidebar .brand-link img { flex-shrink: 0; }
+.main-sidebar .brand-text { white-space: nowrap; }
+.sidebar .user-panel { gap: 12px; padding-block: 20px !important; }
+.sidebar .user-panel .info { min-width: 0; padding-left: 0; }
+.sidebar .user-panel .info a { overflow: hidden; text-overflow: ellipsis; }
+.nav-sidebar .nav-header { padding: 22px 16px 10px; font-size: 12px; color: #666; }
+.nav-sidebar .nav-link { padding: 11px 14px; margin-bottom: 6px; }
+.nav-sidebar .nav-link:not(.active):hover { background: #edf2f2; }
+.content-wrapper > .content-header { padding: 30px 28px 20px; }
+.content-header .d-flex { gap: 12px 24px; align-items: center; }
+.content-header h1 { font-size: 28px; line-height: 1.4; }
+.content-wrapper > .content { padding: 0 28px 32px; }
+.content-wrapper > .content > .container-fluid,
+.content-wrapper > .content-header > .container-fluid { max-width: 1440px; margin-inline: auto; padding: 0; }
+.content-wrapper .card { border: 1px solid var(--ysu-line); margin-bottom: 24px; }
+.content-wrapper .card-header { padding: 18px 22px; }
+.content-wrapper .card-title { line-height: 1.6; font-weight: 600; font-size: 17px; }
+.content-wrapper .card-body { padding: 24px; }
+.content-wrapper .card-footer { padding: 18px 24px; border-top: 1px solid var(--ysu-line); background: #fafafa; }
+.content-wrapper .small-box .inner { padding: 20px; }
+.table th, .table td { padding: 12px 16px; vertical-align: middle; }
+.main-footer { padding: 20px 28px; font-size: 12px; line-height: 1.8; border-top: 1px solid var(--ysu-line); }
+.main-footer #copyright-text { margin-bottom: 4px; }
+.layout-top-nav .content-wrapper > .container,
+.layout-top-nav .main-header > .container { max-width: 1280px; }
+.layout-top-nav .navbar-brand { font-family: YSUMC, sans-serif; font-size: 20px; }
+.dropdown-menu { border: 1px solid var(--ysu-line); max-width: calc(100vw - 24px); }
+.modal-header, .modal-footer { padding: 18px 24px; gap: 12px; }
+.modal-body { padding: 24px; }
+
+/* The account's dark-mode preference must not create white-on-white controls. */
+.dark-mode { color: #ededed; background: #292929; }
+.dark-mode .content-wrapper { background: #292929; }
+.dark-mode .card, .dark-mode .modal-content, .dark-mode .dropdown-menu { background: #3b3b3b; color: #ededed; }
+.dark-mode .main-sidebar, .dark-mode .main-header, .dark-mode .main-footer {
+    background: #333 !important;
+    color: #ededed;
+    border-color: #565656;
+}
+.dark-mode .main-sidebar .nav-link, .dark-mode .main-sidebar .brand-link,
+.dark-mode .main-sidebar .user-panel a, .dark-mode .main-header .nav-link { color: #ededed !important; }
+.dark-mode .main-sidebar .nav-link.active { color: #203c3d !important; }
+.dark-mode .main-sidebar .brand-link, .dark-mode .card, .dark-mode .card-header { border-color: #565656; }
+.dark-mode .nav-sidebar .nav-link:not(.active):hover { background: #494949; }
+.dark-mode .nav-header, .dark-mode .text-muted { color: #ccc !important; }
+.dark-mode .card-footer { background: #333; border-color: #565656; }
+.dark-mode .form-control, .dark-mode .input-group-text { background: #333; border-color: #777; color: #f1f1f1; }
+.dark-mode a:not(.btn):not(.nav-link):not(.brand-link) { color: #8bdddd; }
+
+@media (max-width: 991px) {
+    .ysumc-auth-layout { gap: 28px; }
+    .ysumc-auth-layout .ysumc-intro { padding: 28px; }
+    .ysumc-auth-header img { width: 220px; }
+    .content-wrapper > .content-header { padding: 24px 20px 16px; }
+    .content-wrapper > .content { padding: 0 20px 24px; }
+}
+@media (max-width: 800px) {
+    .ysumc-auth-layout { grid-template-columns: minmax(0, 1fr); max-width: 580px; gap: 28px; padding-top: 8px; padding-bottom: 24px; }
+    .ysumc-auth-layout .ysumc-intro { min-height: 0; }
+    .ysumc-auth-layout .ysumc-intro h1 { margin: 18px 0 14px; font-size: 32px; }
+    .ysumc-intro .ysumc-intro-caption { margin-top: 20px; padding-top: 16px; }
+    .ysumc-auth-layout .login-box { max-width: none; }
+    .ysumc-footer { flex-direction: column; margin-top: 16px; }
+    .ysumc-footer-meta { text-align: left; }
+    .ysumc-header { gap: 20px; }
+    .ysumc-header nav { flex-wrap: wrap; gap: 12px 24px; }
+    .ysumc-home-grid { gap: 16px; }
+}
+@media (max-width: 480px) {
+    .ysumc-auth-header { padding-block: 20px; gap: 16px; }
+    .ysumc-auth-header img { width: 190px; }
+    .ysumc-home-link { font-size: 12px; }
+    .ysumc-auth-layout .login-card-body { padding: 22px; }
+    .ysumc-auth-layout .login-logo h2 { font-size: 26px; }
+    .content-wrapper > .content-header { padding: 22px 16px 16px; }
+    .content-wrapper > .content { padding: 0 16px 24px; }
+    .content-wrapper .card-header, .content-wrapper .card-body, .content-wrapper .card-footer { padding: 18px; }
+    .content-header h1 { font-size: 24px; }
+    .main-footer { padding: 20px 16px; }
+    .layout-top-nav .navbar-brand { font-size: 16px; }
+}

@@ -1,0 +1,117 @@
+@font-face {
+    font-family: YSUMC;
+    src: url("./ysumc.woff2") format("woff2");
+    font-display: swap;
+}
+:root {
+    --ysu-paper: #f1f1f1;
+    --ysu-ink: #3b3b3b;
+    --ysu-muted: #777777;
+    --ysu-accent: #66cccc;
+    --ysu-link: #1f296a;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: var(--ysu-paper);
+    color: var(--ysu-ink);
+    font-family: "Microsoft YaHei", system-ui, sans-serif;
+    line-height: 1.65;
+}
+a { color: var(--ysu-link); }
+a:hover { color: #286f70; }
+button, input, select, textarea { font: inherit; }
+.card, .btn, .form-control, .alert, .callout, .modal-content,
+.main-sidebar, .nav-pills .nav-link, .dropdown-menu {
+    border-radius: 2px !important;
+    box-shadow: none !important;
+}
+.card { border: 0; background: white; }
+.card-header { border-bottom: 1px solid #ddd; background: transparent; }
+.content-wrapper, .login-page, .register-page { background: var(--ysu-paper); }
+.content-header h1, .login-logo, .ysumc-hero h1, .ysumc-intro h1, .ysumc-tile h2 {
+    font-family: YSUMC, "Microsoft YaHei", sans-serif;
+    font-weight: 400;
+}
+.main-sidebar, .main-header, .main-footer { background: white !important; color: var(--ysu-ink); }
+.main-sidebar .nav-link, .main-sidebar .brand-link, .main-sidebar .user-panel a {
+    color: var(--ysu-ink) !important;
+}
+.main-sidebar .nav-link.active, .btn-primary, .bg-primary,
+.page-item.active .page-link {
+    background: var(--ysu-accent) !important;
+    border-color: var(--ysu-accent) !important;
+    color: #203c3d !important;
+}
+.btn { display: inline-block; padding: .55rem 1rem; text-decoration: none; cursor: pointer; }
+.btn-outline-primary { border: 1px solid #408687; color: #286f70; }
+.btn-danger, .bg-danger { background: #9c292d !important; border-color: #9c292d !important; }
+.callout-info { border-left-color: var(--ysu-accent); }
+.form-control:focus { border-color: #408687; box-shadow: 0 0 0 2px #66cccc44; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--ysu-link); outline-offset: 4px; }
+.login-page, .register-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(2rem, 8vw, 10rem);
+    padding: 3rem;
+}
+.ysumc-intro { max-width: 34rem; }
+.ysumc-intro img { width: min(320px, 100%); }
+.ysumc-intro h1, .ysumc-hero h1 {
+    font-size: clamp(2.1rem, 4.5vw, 4.6rem);
+    line-height: 1.35;
+    margin: 1.5rem 0;
+}
+.ysumc-eyebrow { letter-spacing: .16em; font-size: .75rem; color: var(--ysu-muted); }
+.login-box { width: 380px; max-width: 100%; flex-shrink: 0; }
+.login-logo { font-size: 1.5rem; margin-bottom: 1.5rem; }
+.login-card-body { padding: 2rem; color: var(--ysu-ink); }
+.ysumc-header, .ysumc-footer { max-width: 1400px; margin: auto; padding: 2rem 3rem; }
+.ysumc-header { display: flex; justify-content: space-between; align-items: center; gap: 2rem; }
+.ysumc-header nav { display: flex; gap: 2rem; }
+.ysumc-header a { text-decoration: none; }
+.ysumc-home-grid {
+    max-width: 1400px;
+    padding: 0 3rem;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+.ysumc-hero { grid-column: span 2; background: white; padding: clamp(2rem, 4vw, 4rem); }
+.ysumc-emblem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: #dededb;
+    text-align: center;
+    letter-spacing: .12em;
+    font-size: .75rem;
+}
+.ysumc-emblem img { width: 70%; max-width: 250px; margin: 2rem 0; }
+.ysumc-tile { padding: 2rem; background: white; text-decoration: none; color: var(--ysu-ink); }
+.ysumc-tile span { font-size: .75rem; }
+.ysumc-tile h2 { font-size: 1.65rem; margin: 1rem 0; }
+.ysumc-tile-dark, .ysumc-tile-dark:hover { background: #3b3b3b; color: white; }
+.ysumc-tile-dark h2 { color: #fff; }
+.ysumc-tile-dark p, .ysumc-tile-dark .text-muted { color: #e0e0e0 !important; }
+.ysumc-tile-dark span:last-child { color: var(--ysu-accent); }
+.ysumc-footer { color: var(--ysu-muted); font-size: .8rem; }
+@media (max-width: 800px) {
+    .login-page, .register-page { padding: 1.5rem; flex-direction: column; gap: 1rem; }
+    .ysumc-intro { width: 380px; max-width: 100%; }
+    .ysumc-intro h1 { font-size: 2rem; }
+    .ysumc-header { align-items: flex-start; flex-direction: column; padding: 1.5rem; }
+    .ysumc-header nav { flex-wrap: wrap; gap: 1.5rem; }
+    .ysumc-home-grid { grid-template-columns: 1fr; padding: 0 1.5rem; }
+    .ysumc-hero { grid-column: auto; }
+    .ysumc-emblem { display: none; }
+    .ysumc-footer { padding: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}

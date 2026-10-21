@@ -5,19 +5,38 @@
     <title>{% block title %}{% endblock %} - {{ site_name }}</title>
   </head>
 
-  <body class="hold-transition login-page">
-    <div class="login-box">
-      <div class="login-logo">
-        <a href="{{ url('/') }}">{{ site_name }}</a>
-      </div>
-
-      <div class="card">
-        <div class="card-body login-card-body">
-          {% block content %}{% endblock %}
+  <body class="hold-transition login-page ysumc-auth-page">
+    <header class="ysumc-auth-header">
+      <a href="https://ysumc.net">
+        <img src="{{ url('/ysumc/wordmark.svg') }}" alt="燕山大学 Minecraft 学生同好者协会">
+      </a>
+      <a class="ysumc-home-link" href="{{ url('/') }}">返回首页 ↗</a>
+    </header>
+    <div class="ysumc-auth-layout">
+      <section class="ysumc-intro">
+        <div>
+          <p class="ysumc-eyebrow">YSUMC / SKIN CENTER</p>
+          <h1>方块虽小，<br>亦是精彩之源。</h1>
+          <p>Block is small, Dream is big.</p>
+        </div>
+        <div class="ysumc-intro-caption">
+          <p>一个账号，连接你的角色与游戏世界。</p>
+          <p>管理角色、收藏皮肤，为下一次相聚换上新的模样。</p>
+        </div>
+      </section>
+      <div class="login-box">
+        <div class="login-logo">
+          <span class="ysumc-eyebrow">YSUMC / ACCOUNT</span>
+          <h2>{{ block('title') }}</h2>
+        </div>
+        <div class="card">
+          <div class="card-body login-card-body">
+            {% block content %}{% endblock %}
+          </div>
         </div>
       </div>
     </div>
-
+    {{ include('shared.ysumc-footer') }}
     {% block before_foot %}{% endblock %}
     {{ include('shared.foot') }}
   </body>

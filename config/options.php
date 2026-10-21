@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'site_url'                  => '',
-    'site_name'                 => 'Blessing Skin',
+    'site_url'                  => 'https://skin.ysumc.net',
+    'site_name'                 => 'YSUMC 用户中心',
     'site_description'          => 'Open-source PHP Minecraft Skin Hosting Service',
     'register_with_player_name' => 'true',
     'require_verification'      => 'false',

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
-export function getExtendedPrismaClient(siteUrl: string) {
-    const extendedPrismaClient = new PrismaClient().$extends({
+export function getExtendedPrismaClient(siteUrl: string, datasourceUrl: string) {
+    const extendedPrismaClient = new PrismaClient({ datasourceUrl }).$extends({
         result: {
             client: {
                 client_id: {

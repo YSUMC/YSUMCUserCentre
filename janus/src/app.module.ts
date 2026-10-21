@@ -14,8 +14,11 @@ import { validate } from './env-validation';
         ConfigModule.forRoot({ isGlobal: true, validate: validate }),
         CustomPrismaModule.forRootAsync({
             name: EXTENDED_PRISMA_SERVICE,
-            useFactory: (config: ConfigService) => { // SO FUCKING STUPID, someone refactor this please
-                return getExtendedPrismaClient(config.get<string>('BS_SITE_URL')!);
+            useFactory: (config: ConfigService) => {
+                return getExtendedPrismaClient(
+                    config.get<string>('BS_SITE_URL')!,
+                    config.get<string>('DB_CONNECTION_STRING')!,
+                );
             },
             inject: [ConfigService],
         }),

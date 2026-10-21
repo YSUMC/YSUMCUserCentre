@@ -1,0 +1,17 @@
+{
+  "blessing_skin": {
+    "version": "6.0.2",
+    "url": "https://github.com/bs-community/blessing-skin-server/releases/download/6.0.2/blessing-skin-server-6.0.2.zip",
+    "sha256": "6090d10cb2d751191ae4f343f366fbc51dad8844aace63789e1b47e838121f2a",
+    "restored_paths": ["vendor/", "public/app/", "resources/views/assets/", "storage/", "bootstrap/cache/"],
+    "composer_source": "https://github.com/bs-community/blessing-skin-server/tree/6.0.2"
+  },
+  "yggdrasil_connect": {
+    "version": "6.2.0",
+    "repository": "https://github.com/bs-community/blessing-skin-plugins",
+    "commit": "de016f4cbb43df7bd6d46193d5625693f8c79b3f",
+    "path": "plugins/yggdrasil-connect",
+    "archive_sha256": "23f3edf29909d13f7b75940ee8795a60260a99268801ddf43d996b3456d30b01",
+    "license": "MIT"
+  }
+}

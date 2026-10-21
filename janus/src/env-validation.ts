@@ -41,15 +41,19 @@ class Env {
     SHARED_CLIENT_ID: string;
 
     @IsNumber()
+    @Min(1)
     TOKEN_EXPIRES_IN_1: number;
 
     @IsNumber()
+    @Min(1)
     TOKEN_EXPIRES_IN_2: number;
 
     @IsNumber()
+    @Min(1)
     DEVICE_CODE_EXPIRES_IN: number;
 
     @IsNumber()
+    @Min(1)
     GRANT_EXPIRES_IN: number;
 }
 
@@ -63,8 +67,14 @@ function IsSecureUrl(property?: string, validationOptions?: ValidationOptions) {
             constraints: [property],
             validator: {
                 validate(value: string, args: ValidationArguments) {
-                    const url = new URL(value);
-                    return (url.protocol === 'https:' || url.hostname == 'localhost') && !url.search.length && !url.hash.length && !value.endsWith('/');
+                    try {
+                        const url = new URL(value);
+                        return (url.protocol === 'https:' || (url.protocol === 'http:' && url.hostname === 'localhost'))
+                            && !url.username && !url.password
+                            && !url.search.length && !url.hash.length && !value.endsWith('/');
+                    } catch {
+                        return false;
+                    }
                 },
                 defaultMessage(args: ValidationArguments) {
                     return `${args.property} must be a secure URL (either localhost or HTTPS), not end with a slash, and not contain queries and fragments.`;
@@ -83,7 +93,12 @@ export function validate(config: Record<string, unknown>) {
     const errors = validateSync(validatedConfig, { skipMissingProperties: false });
 
     if (errors.length > 0) {
-        throw new Error(errors.toString());
+        throw new Error(errors.flatMap(error => Object.values(error.constraints ?? {})).join('; '));
     }
-    return validatedConfig;
+    // Build the DSN after validation, rather than relying on nested dotenv
+    // interpolation. Reserved characters in credentials must be URL encoded.
+    const host = validatedConfig.DB_HOST.includes(':') && !validatedConfig.DB_HOST.startsWith('[')
+        ? `[${validatedConfig.DB_HOST}]` : validatedConfig.DB_HOST;
+    const databaseUrl = `mysql://${encodeURIComponent(validatedConfig.DB_USERNAME)}:${encodeURIComponent(validatedConfig.DB_PASSWORD)}@${host}:${validatedConfig.DB_PORT}/${encodeURIComponent(validatedConfig.DB_NAME)}`;
+    return { ...validatedConfig, DB_CONNECTION_STRING: databaseUrl };
 }
