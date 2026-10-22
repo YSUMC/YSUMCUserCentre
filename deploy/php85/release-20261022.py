@@ -70,6 +70,7 @@ def populate(target, source, production=False):
         shutil.copytree(source/'storage',target/'storage',symlinks=False)
     (target/'bootstrap/cache').mkdir(parents=True,exist_ok=True)
     (target/'public/lang').mkdir(parents=True,exist_ok=True)
+    (target/'public/plugins').mkdir(parents=True,exist_ok=True)
     shutil.copytree(source/'vendor',target/'vendor',symlinks=False)
     for rel in ['janus/.env','janus/oauth-private.key','janus/prisma/schema.prisma']:
         if (source/rel).exists():
@@ -90,7 +91,7 @@ def populate(target, source, production=False):
     run(['chown','-R','root:www',target])
     for rel in ['.env','janus/.env','janus/oauth-private.key']:
         if (target/rel).exists(): (target/rel).chmod(0o640)
-    for folder in ['bootstrap/cache','plugins','public/lang'] + ([] if production else ['storage']):
+    for folder in ['bootstrap/cache','plugins','public/lang','public/plugins'] + ([] if production else ['storage']):
         run(['chown','-R','www:www',target/folder])
         (target/folder).chmod(0o775)
     return target
@@ -199,7 +200,7 @@ def cutover():
     fpm.write_text((BACK/'php-fpm.conf').read_text().replace(str(OLD),str(NEW)))
     unit=Path('/etc/systemd/system/ysumc-php85-fpm.service')
     unit_text=(BACK/'php.service').read_text().replace(str(OLD),str(NEW))
-    unit.write_text(unit_text.replace('NoNewPrivileges=true', 'ReadWritePaths='+str(NEW/'public/lang')+'\nNoNewPrivileges=true'))
+    unit.write_text(unit_text.replace('NoNewPrivileges=true', 'ReadWritePaths='+str(NEW/'public/lang')+' '+str(NEW/'public/plugins')+'\nNoNewPrivileges=true'))
     Path('/etc/systemd/system/ysumc-janus.service.d/30-release.conf').write_text('[Service]\nWorkingDirectory='+str(NEW/'janus')+'\n')
     for command in ['package:discover','config:cache','view:cache']:
         log('production-'+command.replace(':','-'),['runuser','-u','www','--',PHP,'-c',INI,'artisan',command],NEW)

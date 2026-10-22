@@ -1,0 +1,13 @@
+{
+  "completed_utc": "2026-10-22T12:28:45.094584+00:00",
+  "repair": "Allow public/plugins writes in PHP-FPM mount namespace and finish interrupted plugin enable lifecycle",
+  "lifecycle_as_www_in_fpm_namespace": true,
+  "invitation_rows_preserved": 428,
+  "enabled_plugin_list_unchanged": true,
+  "invitation_policy_initialized": true,
+  "assets": {
+    "admin.js": 200,
+    "register.js": 200
+  },
+  "regression_tests_run": false
+}

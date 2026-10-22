@@ -45,6 +45,16 @@ bash /www/server/php-compat-assessments/20261022-cas-invitation-install/rollback
 
 脚本将本次安装文件移回私有目录并重建配置缓存，不覆盖数据库，也不改变注册规则。
 
+## 后续修复：启用邀请码时的只读目录错误
+
+用户在后台启用邀请码插件时，`CopyPluginAssets.php` 报 `mkdir(): Read-only file system`。PHP-FPM 启用了 `ProtectSystem=strict`，可写目录包含源码 `plugins` 和翻译缓存 `public/lang`，却漏掉了插件前端资源目录 `public/plugins`。启用标记在事件执行前已写入，因此出现“已启用”但资源发布与插件启用回调未完成的状态。
+
+已安装 systemd 附加配置 `/etc/systemd/system/ysumc-php85-fpm.service.d/40-plugin-assets.conf`，只增加 `/www/wwwroot/ysumcusercentre/public/plugins` 的写入权限，并重启 PHP-FPM 使挂载权限生效。发布脚本同步增加该目录的创建、属主设置和可写路径。
+
+在 PHP-FPM **实际挂载命名空间**内，以 `www` 用户重新执行邀请码插件的启用事件，资源复制、语言缓存清理和启用回调均已完成。原有 428 条邀请码记录逐条比较未变，启用插件列表未变；缺失的 `invitation_codes_for_union_enabled` 初始化值已补齐。`admin.js`、`register.js` 均返回 200，且发布内容与源码一致。保留用户当前的插件启用状态和站点关闭注册设置；未运行回归测试或创建测试邀请码。
+
+本次服务配置备份、邀请码快照和结果保存在服务器私有目录 `/www/server/php-compat-assessments/20261022-plugin-assets-permission`；快照包含邀请码，未提交到仓库。仓库只保留脱敏结果 `evidence/plugin-assets-permission-20261022/result.json`。
+
 ## 首次发布运行状态
 
 - PHP 官网本次核查最新稳定版为 **8.5.12**（https://www.php.net/downloads.php）。服务器已有此前完整构建的同版本，核验后继续使用，无需重复编译或退回 PHP 8.1。
