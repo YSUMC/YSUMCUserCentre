@@ -1,0 +1,18 @@
+[Unit]
+Description=YSUMC candidate PHP 8.5 FPM
+After=network.target
+
+[Service]
+Type=simple
+RuntimeDirectory=ysumc-php85
+RuntimeDirectoryMode=0755
+ExecStart=/opt/ysumc/php85/8.5.12/sbin/php-fpm -F -c /etc/ysumc/php85.ini -y /etc/ysumc/php85-fpm.conf
+ExecReload=/bin/kill -USR2 $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=90
+Restart=on-failure
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

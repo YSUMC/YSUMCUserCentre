@@ -29,6 +29,28 @@ final class UpdateBuilder
         return $row === null ? null : $this->summary($row);
     }
 
+    /** Public release notes are independent of installer hosting and signatures. */
+    public function releases(iterable $rows): array
+    {
+        $versions = [];
+        foreach ($rows as $row) {
+            if (!($row['enabled'] ?? false) || ($row['channel'] ?? '') !== 'release'
+                || ReleaseRules::metadataProblem($row) !== null) {
+                continue;
+            }
+            $version = (string) $row['version'];
+            if (self::isNewerThan($row, $versions[$version] ?? null)) {
+                $versions[$version] = $row;
+            }
+        }
+        $versions = array_values($versions);
+        usort($versions, static fn (array $a, array $b): int =>
+            SemanticVersion::compare((string) $b['version'], (string) $a['version'])
+                ?: ((Timestamps::value($b['pub_date']) ?? 0) <=> (Timestamps::value($a['pub_date']) ?? 0)));
+
+        return ['releases' => array_map(fn (array $row): array => $this->summary($row), array_slice($versions, 0, 100))];
+    }
+
     /**
      * The document installed by the Tauri v2 dynamic updater, or null when
      * nothing applies — which the controller answers with 204.

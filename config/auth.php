@@ -50,6 +50,12 @@ return [
             'driver' => 'passport',
             'provider' => 'users',
         ],
+
+        // Passport's personal-access client lookup uses this provider alias.
+        'api' => [
+            'driver' => 'passport',
+            'provider' => 'users',
+        ],
     ],
 
     /*

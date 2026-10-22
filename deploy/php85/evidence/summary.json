@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-22",
+  "branch": "codex/php85-compat",
+  "baseline_commit": "0ce6477",
+  "php": "8.5.12",
+  "packages": {
+    "laravel/framework": "v13.38.0",
+    "laravel/passport": "v13.10.0",
+    "lcobucci/jwt": "5.6.1",
+    "nesbot/carbon": "3.15.0",
+    "symfony/http-foundation": "v8.1.9",
+    "twig/twig": "v3.30.0",
+    "phpunit/phpunit": "12.5.40"
+  },
+  "composer_lock_sha256": "7358cdefb0a61954654a51e78bdaafb8b374ac28a23497cd41223cefaaa2eadd",
+  "phpunit": {
+    "tests": 933,
+    "assertions": 2003,
+    "passed": true
+  },
+  "http": {
+    "checks": 38,
+    "config_cached_and_uncached": true,
+    "passed": true
+  },
+  "eduroam_mock_checks": 31,
+  "launcher_contract_checks": 19,
+  "janus_tests": 13,
+  "syntax_files": 352,
+  "advisory_packages": 0,
+  "abandoned_packages": 0,
+  "production_files_unchanged": 296,
+  "production_site": "stopped",
+  "production_php81": "inactive",
+  "candidate_services": "stopped",
+  "candidate_database": "stopped; data retained",
+  "limitations": [
+    "No live Minecraft client",
+    "No real campus/union/mail upstream calls",
+    "SIT source assessment only"
+  ],
+  "maintenance_base_commit": "3b580b0cc92337da4159739c271805752b756bd0",
+  "legacy_parser_cases": 899,
+  "lexer_cases": 31,
+  "node": {
+    "version": "22.23.4",
+    "build_tests": 13,
+    "dropin_verified": true,
+    "restart_http_checks": 38,
+    "rollback_http_checks": 38,
+    "restore_http_checks": 38,
+    "runtime_parents_root_owned": true,
+    "production_pid_unchanged": false,
+    "production_unit_unchanged": true,
+    "production_status_at_delivery": "auto-restart; 203/EXEC; original Node path missing",
+    "original_process_exit_cause": "undetermined"
+  },
+  "production_runtime_guard_passed": false,
+  "production_file_and_site_guards_passed": true
+}

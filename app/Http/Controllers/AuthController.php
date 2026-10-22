@@ -8,6 +8,7 @@ use App\Mail\ForgotPassword;
 use App\Models\Player;
 use App\Models\User;
 use App\Rules;
+use App\Services\PasswordResetTokens;
 use Auth;
 use Blessing\Filter;
 use Blessing\Rejection;
@@ -15,6 +16,7 @@ use Cache;
 use Carbon\Carbon;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Mail;
 use Session;
 use URL;
@@ -282,7 +284,7 @@ class AuthController extends Controller
         $url = URL::temporarySignedRoute(
             'auth.reset',
             Carbon::now()->addHour(),
-            ['uid' => $user->uid],
+            ['uid' => $user->uid, 'token' => app(PasswordResetTokens::class)->issue($user)],
             false
         );
         try {
@@ -303,8 +305,10 @@ class AuthController extends Controller
     public function reset(Request $request, $uid)
     {
         abort_unless($request->hasValidSignature(false), 403, trans('auth.reset.invalid'));
+        $user = User::findOrFail($uid);
+        abort_unless(app(PasswordResetTokens::class)->valid($user, $request->query('token')), 403, trans('auth.reset.invalid'));
 
-        return view('auth.reset')->with('user', User::find($uid));
+        return view('auth.reset')->with('user', $user);
     }
 
     public function handleReset(Dispatcher $dispatcher, Request $request, $uid)
@@ -314,11 +318,13 @@ class AuthController extends Controller
         ['password' => $password] = $request->validate([
             'password' => 'required|min:8|max:32',
         ]);
-        $user = User::find($uid);
-
-        $dispatcher->dispatch('auth.reset.before', [$user, $password]);
-        $user->changePassword($password);
-        $dispatcher->dispatch('auth.reset.after', [$user, $password]);
+        DB::transaction(function () use ($uid, $request, $dispatcher, $password) {
+            $user = User::whereKey($uid)->lockForUpdate()->firstOrFail();
+            abort_unless(app(PasswordResetTokens::class)->consume($user, $request->query('token')), 403, trans('auth.reset.invalid'));
+            $dispatcher->dispatch('auth.reset.before', [$user, $password]);
+            $user->changePassword($password);
+            $dispatcher->dispatch('auth.reset.after', [$user, $password]);
+        });
 
         return json(trans('auth.reset.success'), 0);
     }

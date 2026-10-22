@@ -123,30 +123,40 @@ final class InstanceController
         $this->requireInstance($instanceId);
 
         $request->validate(
-            ['pack' => ['required', 'file', 'max:'.$this->maxUploadKilobytes()]],
+            ['pack' => ['required', 'file', 'max:'.$this->maxUploadKilobytes()], 'format' => ['nullable', 'in:mrpack,multimc,curseforge-zip,server-zip,raw']],
             ['pack.max' => trans('sitmc-launcher::launcher.packs.too-large')]
         );
 
         $revision = $this->nextRevision($instanceId);
 
         try {
-            $stored = $this->packs->put($request->file('pack'), $instanceId, $revision);
+            $stored = $this->packs->put($request->file('pack'), $instanceId, $revision, $request->input('format') ?: 'mrpack');
         } catch (RuntimeException $exception) {
             return back()->withErrors([
                 'pack' => trans('sitmc-launcher::launcher.packs.error.'.$exception->getMessage()),
             ]);
         }
 
-        $this->repository->savePack($instanceId, $revision, [
-            'disk_path' => $stored['disk_path'],
-            'original_name' => $stored['original_name'],
-            'sha1' => $stored['sha1'],
-            'size' => $stored['size'],
-            'updated_at' => now(),
-            'created_at' => now(),
-        ]);
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($instanceId, $revision, $stored): void {
+                $this->repository->savePack($instanceId, $revision, [
+                    'disk_path' => $stored['disk_path'],
+                    'original_name' => $stored['original_name'],
+                    'sha1' => $stored['sha1'],
+                    'sha512' => $stored['sha512'],
+                    'format' => $stored['format'],
+                    'size' => $stored['size'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ] + $stored['metadata']);
 
-        $this->repository->setRevision($instanceId, $revision);
+                $this->repository->setRevision($instanceId, $revision);
+                if ($stored['metadata'] !== []) $this->repository->saveInstance(['instance_id' => $instanceId] + $stored['metadata']);
+            });
+        } catch (\Throwable $e) {
+            if (! $this->repository->hasPackFileReference($stored['disk_path'])) $this->packs->forget($stored['disk_path']);
+            throw $e;
+        }
 
         return redirect()
             ->route('sitmc-launcher.admin.edit', $instanceId)
@@ -161,11 +171,18 @@ final class InstanceController
 
         $values = $request->validate([
             'url' => ['required', 'string', 'max:512'],
-            'sha1' => ['required', 'string', 'regex:/^[0-9a-fA-F]{40}$/'],
+            'sha1' => ['nullable', 'required_without:sha512', 'string', 'regex:/^[0-9a-fA-F]{40}$/'],
+            'sha512' => ['nullable', 'required_without:sha1', 'string', 'regex:/^[0-9a-fA-F]{128}$/'],
+            'format' => ['nullable', 'in:mrpack,multimc,curseforge-zip,server-zip,raw'],
             'size' => ['required', 'integer', 'min:1'],
         ]);
 
         $problem = ManifestRules::packUrlProblem($values['url']);
+        try {
+            app(\SITMinecraft\Launcher\Interop\PublicAddress::class)->checkUrl($values['url']);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['url' => $e->getMessage()]);
+        }
 
         if ($problem !== null) {
             return back()->withErrors([
@@ -175,15 +192,19 @@ final class InstanceController
 
         $revision = $this->nextRevision($instanceId);
 
-        $this->repository->savePack($instanceId, $revision, [
-            'url' => $values['url'],
-            'sha1' => strtolower($values['sha1']),
-            'size' => $values['size'] ?? 0,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($instanceId, $revision, $values): void {
+            $this->repository->savePack($instanceId, $revision, [
+                'url' => $values['url'],
+                'sha1' => strtolower($values['sha1'] ?? ''),
+                'sha512' => isset($values['sha512']) ? strtolower($values['sha512']) : null,
+                'format' => $values['format'] ?? 'mrpack',
+                'size' => $values['size'] ?? 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        $this->repository->setRevision($instanceId, $revision);
+            $this->repository->setRevision($instanceId, $revision);
+        });
 
         return redirect()
             ->route('sitmc-launcher.admin.edit', $instanceId)
@@ -262,13 +283,13 @@ final class InstanceController
         }
 
         $values = $request->validate([
-            'instance_id' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/', $unique],
+            'instance_id' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9._-]+$/', $unique],
             'name' => ['required', 'string', 'max:128'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon_url' => ['nullable', 'string', 'max:512'],
             'sort' => ['nullable', 'integer', 'min:-100000', 'max:100000'],
             'game_version' => ['required', 'string', 'max:64'],
-            'loader' => ['nullable', 'string', 'max:32'],
+            'loader' => ['nullable', 'in:vanilla,fabric,forge,neoforge,quilt'],
             'loader_version' => ['nullable', 'string', 'max:64'],
             'server_address' => ['nullable', 'string', 'max:255'],
             'server_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
@@ -276,6 +297,10 @@ final class InstanceController
             'required' => ['nullable', 'boolean'],
             'enabled' => ['nullable', 'boolean'],
         ]);
+
+        if ($instanceId !== null && $values['instance_id'] !== $instanceId) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['instance_id' => '实例 ID 创建后不可修改。']);
+        }
 
         return [
             'instance_id' => $values['instance_id'],

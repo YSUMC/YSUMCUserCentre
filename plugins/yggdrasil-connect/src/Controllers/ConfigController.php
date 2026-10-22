@@ -47,6 +47,23 @@ class ConfigController extends Controller
                 ->label(trans('LittleSkin\\YggdrasilConnect::config.common.ygg_enable_ali.label'));
         })->handle();
 
+        $restoreAPIForm = Option::form('restore', trans('LittleSkin\\YggdrasilConnect::config.restore.title'), function (OptionForm $form) {
+            $form->checkbox('ygg_restore_api', trans('LittleSkin\\YggdrasilConnect::config.restore.enable.title'))
+                ->label(trans('LittleSkin\\YggdrasilConnect::config.restore.enable.label'));
+        })->handle();
+
+        $unionForm = Option::form('union', trans('LittleSkin\\YggdrasilConnect::config.union.title'), function (OptionForm $form) {
+            $form->text('union_api_root', trans('LittleSkin\\YggdrasilConnect::config.union.api_root.title'));
+            $form->text('union_member_key', trans('LittleSkin\\YggdrasilConnect::config.union.member_key.title'))
+                ->hint(trans('LittleSkin\\YggdrasilConnect::config.union.member_key.hint'));
+            $form->checkbox('union_enable_update', trans('LittleSkin\\YggdrasilConnect::config.union.enable_update.title'));
+            /*
+          	$form->checkbox('union_use_blacklist_locally', trans('LittleSkin\\YggdrasilConnect::config.union.local_blacklist.title'))
+                ->hint(trans('LittleSkin\\YggdrasilConnect::config.union.local_blacklist.hint'));
+            */
+        })->handle();
+
+        /*
         $keypairForm = Option::form('keypair', trans('LittleSkin\\YggdrasilConnect::config.keypair.title'), function (OptionForm $form) {
             $form->textarea('ygg_private_key', trans('LittleSkin\\YggdrasilConnect::config.keypair.ygg_private_key.title'))
                 ->rows(10)
@@ -67,6 +84,22 @@ class ConfigController extends Controller
         } else {
             $keypairForm->addMessage(trans('LittleSkin\\YggdrasilConnect::config.keypair.ygg_private_key.invalid'), 'danger');
         }
+        */
+
+        $unionOAuth2Form = Option::form('union_oauth2', trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.title'), function (OptionForm $form) {
+            $form->textarea('union_oauth2_sig_private_key', trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_private_key.title'))
+                ->rows(10)
+                ->hint(trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_private_key.hint'));
+            $form->textarea('union_oauth2_sig_public_key', trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_public_key.title'))
+                ->rows(10)
+                ->hint(trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_public_key.hint'));
+        })->handle();
+
+        if (openssl_pkey_get_private(option('union_oauth2_sig_private_key')) && openssl_pkey_get_public(option('union_oauth2_sig_public_key'))) {
+            $unionOAuth2Form->addMessage(trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_key.valid'), 'success');
+        } else {
+            $unionOAuth2Form->addMessage(trans('LittleSkin\\YggdrasilConnect::config.union.oauth2.sig_key.invalid'), 'danger');
+        }
 
         $yggcForm = Option::form('yggc', 'Yggdrasil Connect', function (OptionForm $form) {
             $form->text('ygg_connect_server_url', trans('LittleSkin\\YggdrasilConnect::config.yggc.server_url.title'))
@@ -77,18 +110,24 @@ class ConfigController extends Controller
                 ->description(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.description'));
         })->handle();
 
-        $client = $this->clientRepository->find(env('PASSPORT_PERSONAL_ACCESS_CLIENT_ID'));
+        $id = config('passport.personal_access_client.id');
+        $client = $id ? $this->clientRepository->findActive($id) : null;
 
         if (!option('ygg_disable_authserver') && empty($client)) {
             $yggcForm->addMessage(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.empty-client-id'), 'danger');
-        } elseif (!$client->firstParty()) {
+        } elseif ($client && !$client->hasGrantType('personal_access')) {
             $yggcForm->addMessage(trans('LittleSkin\\YggdrasilConnect::config.yggc.disable_authserver.invalid-client-id'), 'danger');
         }
 
         Hook::addScriptFileToPage(plugin('yggdrasil-connect')->assets('config.js'));
 
         return view('LittleSkin\\YggdrasilConnect::config', [
-            'forms' => ['common' => $commonForm, 'keypair' => $keypairForm, 'yggc' => $yggcForm],
+            'forms' => ['common' => $commonForm, 'restore_api' => $restoreAPIForm, 'union' => $unionForm, 'union_oauth2_form' => $unionOAuth2Form, 'yggc' => $yggcForm],
+            'servers' => json_decode(option('union_server_list')),
+            'server_list_version' => (int)option('union_server_list_version'),
+            'private_key' => option('ygg_private_key'),
+            'private_key_version' => (int)option('union_private_key_version'),
+            'union_api_root' => option('union_api_root')
         ]);
     }
 
@@ -98,12 +137,27 @@ class ConfigController extends Controller
         // - Specified by option 'site_url'
         // - Extract host from current URL
         $extra = option('ygg_skin_domain') === '' ? [] : explode(',', option('ygg_skin_domain'));
-        $skinDomains = array_map('trim', array_values(array_unique(array_merge($extra, [
+        // MODIFIED: UNION
+        $unionServers = array_column(json_decode(option('union_server_list'), true), 'bs_root');
+        foreach ($unionServers as &$server) {
+            $server = parse_url($server, PHP_URL_HOST);
+        }
+        $skinDomains = array_map('trim', array_values(array_unique(array_merge($extra, $unionServers, [
             parse_url(option('site_url'), PHP_URL_HOST),
             $request->getHost(),
         ]))));
 
-        $signaturePublickey = $this->getPrivateKey();
+        $privateKey = openssl_pkey_get_private(option('ygg_private_key'));
+
+        if (!$privateKey) {
+            throw new IllegalArgumentException(trans('LittleSkin\\YggdrasilConnect::config.rsa.invalid'));
+        }
+
+        $keyData = openssl_pkey_get_details($privateKey);
+
+        if ($keyData['bits'] < 4096) {
+            throw new IllegalArgumentException(trans('LittleSkin\\YggdrasilConnect::config.rsa.length'));
+        }
 
         $result = [
             'meta' => [
@@ -115,7 +169,7 @@ class ConfigController extends Controller
                 ],
             ],
             'skinDomains' => $skinDomains,
-            'signaturePublickey' => $signaturePublickey,
+            'signaturePublickey' => $keyData['key'],
         ];
 
         if (!optional($pluginManager->get('disable-registration'))->isEnabled()) {
@@ -131,7 +185,7 @@ class ConfigController extends Controller
             $result['meta']['feature.openid_configuration_url'] = "$yggc_server/.well-known/openid-configuration";
         }
 
-        return json($result);
+        return json($result)->header('Access-Control-Allow-Origin', '*');
     }
 
     public function logPage(): View
@@ -144,48 +198,15 @@ class ConfigController extends Controller
 
     public function generate(): JsonResponse
     {
+        $keypair = ygg_generate_rsa_keys();
         try {
             return json([
                 'code' => 0,
-                'key' => ygg_generate_rsa_keys()['private'],
+                'privateKey' => $keypair['private'],
+                'publicKey' => $keypair['private'],
             ]);
         } catch (\Exception $e) {
-            return json('Error: '.$e->getMessage(), 1);
+            return json('Error: ' . $e->getMessage(), 1);
         }
-    }
-
-    public function getPublicKeys(): JsonResponse
-    {
-        $keyData = $this->getPrivateKey();
-
-        $publicKeyBase64 = str_replace(
-            ['-----BEGIN PUBLIC KEY-----', '-----END PUBLIC KEY-----', "\n"],
-            '',
-            $keyData
-        );
-
-        $result = [
-            'profilePropertyKeys' => [['publicKey' => $publicKeyBase64]],
-            'playerCertificateKeys' => [['publicKey' => $publicKeyBase64]],
-        ];
-
-        return json($result);
-    }
-
-    public function getPrivateKey(): string
-    {
-        $privateKey = openssl_pkey_get_private(option('ygg_private_key'));
-
-        if (!$privateKey) {
-            throw new IllegalArgumentException(trans('LittleSkin\\YggdrasilConnect::config.rsa.invalid'));
-        }
-
-        $keyData = openssl_pkey_get_details($privateKey);
-
-        if ($keyData['bits'] < 4096) {
-            throw new IllegalArgumentException(trans('LittleSkin\\YggdrasilConnect::config.rsa.length'));
-        }
-
-        return $keyData['key'];
     }
 }

@@ -1,0 +1,293 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://skin.sitmc.club/.well-known/mc-interop-v1.schema.json",
+  "title": "mc-interop v1 SiteDocument",
+  "type": "object",
+  "required": [
+    "site",
+    "packs",
+    "peers",
+    "updatedAt"
+  ],
+  "properties": {
+    "site": {
+      "$ref": "#/definitions/site"
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/packEntry"
+      }
+    },
+    "peers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/peerEntry"
+      }
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "host": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 253,
+      "format": "hostname",
+      "pattern": "^[A-Za-z0-9.-]+$"
+    },
+    "site": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "domain"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "domain": {
+          "$ref": "#/definitions/host"
+        }
+      },
+      "additionalProperties": true
+    },
+    "server": {
+      "type": "object",
+      "required": [
+        "address"
+      ],
+      "properties": {
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "additionalProperties": true
+    },
+    "distribution": {
+      "type": "object",
+      "required": [
+        "system"
+      ],
+      "properties": {
+        "system": {
+          "enum": [
+            "yda-launcher-v2",
+            "yap-mip"
+          ]
+        },
+        "packId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "versionId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "format",
+        "url",
+        "size",
+        "sha1",
+        "sha512"
+      ],
+      "properties": {
+        "format": {
+          "enum": [
+            "mrpack",
+            "multimc",
+            "curseforge-zip",
+            "server-zip",
+            "raw"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha1": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "sha512": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{128}$"
+        },
+        "distribution": {
+          "$ref": "#/definitions/distribution"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "sha1": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "properties": {
+            "sha512": {
+              "type": "string"
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "siteId",
+        "domain"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "domain": {
+          "$ref": "#/definitions/host"
+        },
+        "stale": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "packEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "gameVersion",
+        "loader",
+        "server"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "source": {
+          "$ref": "#/definitions/source"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gameVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "loader": {
+          "enum": [
+            "vanilla",
+            "fabric",
+            "forge",
+            "neoforge",
+            "quilt"
+          ]
+        },
+        "loaderVersion": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "artifact": {
+          "$ref": "#/definitions/artifact"
+        },
+        "server": {
+          "$ref": "#/definitions/server"
+        }
+      },
+      "dependencies": {
+        "artifact": [
+          "revision"
+        ],
+        "revision": [
+          "artifact"
+        ]
+      },
+      "additionalProperties": true
+    },
+    "peerEntry": {
+      "type": "object",
+      "required": [
+        "siteId",
+        "domain",
+        "manifestUrl"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "domain": {
+          "$ref": "#/definitions/host"
+        },
+        "manifestUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

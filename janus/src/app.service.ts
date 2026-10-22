@@ -29,7 +29,12 @@ export class AppService {
         const result = await this.provider.interactionDetails(req, res);
 
         const { params } = result;
-        const url = `${this.siteUrl}/oauth/authorize?client_id=${params.client_id}&response_type=code&scope=${params.scope}&redirect_uri=${this.siteUrl}/yggc/callback&state=${result.jti}&prompt=consent`
+        const query = new URLSearchParams({
+            client_id: String(params.client_id), response_type: 'code',
+            scope: String(params.scope ?? ''), redirect_uri: `${this.siteUrl}/yggc/callback`,
+            state: result.jti, prompt: 'consent',
+        });
+        const url = `${this.siteUrl}/oauth/authorize?${query}`;
 
         /* if(result.deviceCode) {
             return res.json({
@@ -51,9 +56,21 @@ export class AppService {
             }, { mergeWithLastSubmission: false });
         }
 
+        const reject = () => this.provider.interactionFinished(req, res, {
+            error: 'invalid_grant', error_description: 'Invalid or expired code',
+        }, { mergeWithLastSubmission: false });
+        if (typeof code !== 'string' || !code || typeof client_id !== 'string'
+            || !/^[1-9][0-9]{0,19}$/.test(client_id)
+            || BigInt(client_id) > 18446744073709551615n) return reject();
+        const client = await this.prisma.client.client.findFirst({
+            where: { id: BigInt(client_id), revoked: false },
+        });
+        if (!client) return reject();
+
         const authCode: PassportAuthCode | null = await this.prisma.client.passportAuthCode.findFirst({
             where: {
                 id: code,
+                client_id: BigInt(client_id),
                 revoked: false,
                 expires_at: {
                     gte: getDateWithTimezoneOffset()
@@ -61,7 +78,7 @@ export class AppService {
             }
         });
 
-        if (!authCode) {
+        if (!authCode || String(authCode.client_id) !== client_id) {
             return this.provider.interactionFinished(req, res, {
                 error: "invalid_grant",
                 error_description: "Invalid or expired code"
@@ -85,9 +102,12 @@ export class AppService {
             });
         }
 
-        const scopesInSession: Set<string> = new Set(scope.split(" "));
-        const scopesInBSAuth: Set<string> = new Set(scopesInSession);
-        const scopes = scopesInSession.intersection(scopesInBSAuth);
+        let approved: unknown;
+        try { approved = JSON.parse(authCode.scopes ?? '[]'); } catch { return reject(); }
+        if (!Array.isArray(approved) || !approved.every(value => typeof value === 'string')) return reject();
+        const scopes = new Set((scope ?? '').split(' ').filter(Boolean));
+        const approvedScopes = new Set(approved);
+        if ([...scopes].some(value => !approvedScopes.has(value))) return reject();
 
         if (scopes.has(YggCScopes.PROFILE_SELECT)) {
             const codeIdToUUID: CodeIdToUUID | null = await this.prisma.client.codeIdToUUID.findFirst({
@@ -109,13 +129,22 @@ export class AppService {
                     player: true
                 }
             });
-            if (!uuid) {
+            if (!uuid?.player || uuid.player.uid !== user.uid) {
                 return this.provider.interactionFinished(req, res, {
                     error: "invalid_grant",
                     error_description: "Invalid or expired code"
                 });
             }
         }
+
+        // Claim the one-use code atomically before creating a grant. Concurrent
+        // callbacks must not mint two grants from the same authorization.
+        const consumed = await this.prisma.client.passportAuthCode.updateMany({
+            where: { id: code, client_id: BigInt(client_id), revoked: false,
+                expires_at: { gte: getDateWithTimezoneOffset() } },
+            data: { revoked: true },
+        });
+        if (consumed.count !== 1) return reject();
 
         const grant: oidc.Grant = new this.provider.Grant({
             clientId: client_id,
@@ -129,15 +158,6 @@ export class AppService {
 
         grant.jti = code;
         await grant.save();
-
-        await this.prisma.client.passportAuthCode.update({
-            where: {
-                id: code
-            },
-            data: {
-                revoked: true,
-            }
-        });
 
         return this.provider.interactionFinished(req, res, {
             login: {

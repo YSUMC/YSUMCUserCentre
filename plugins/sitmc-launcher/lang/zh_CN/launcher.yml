@@ -1,6 +1,12 @@
 menu: "启动器实例"
 title: "YSUMC 启动器"
 
+tab:
+  instances: "实例"
+  announcements: "公告"
+  releases: "版本"
+  interop: "对外清单"
+
 announcements:
   menu: "启动器公告"
   title: "客户端公告"
@@ -50,8 +56,8 @@ instances:
   intro: "启动器从这个地址读取实例清单： :path。只有状态为“已发布”的实例才会下发给客户端。"
   empty: "还没有实例。先新建一个实例，再上传它的 .mrpack 整合包。"
   create: "新建实例"
-  publish: "发布状态"
-  published: "已发布"
+  publish: "旧客户端兼容性"
+  published: "兼容；公开范围见“对外清单”"
   disabled: "已停用"
   confirm-delete: "删除该实例及其全部整合包？此操作不可撤销。"
 
@@ -63,7 +69,7 @@ instance:
 
 field:
   id: "实例标识"
-  id-hint: "仅限字母、数字、下划线与短横线，最长 64 个字符；客户端用它区分实例，创建后不可修改。"
+  id-hint: "仅限字母、数字、点、下划线与短横线，最长 128 个字符；客户端用它区分实例，创建后不可修改。"
   name: "名称"
   description: "描述"
   icon_url: "图标地址"
@@ -149,14 +155,14 @@ settings:
 
 packs:
   title: "整合包版本"
-  intro: "每次上传或登记都会生成新的版本号并立即下发给客户端，客户端据版本号强制重装。"
+  intro: "每次上传或登记生成递增版本；只有在“对外清单”中勾选发布的实例才会下发。"
   empty: "还没有整合包，该实例不会下发。请上传一个 .mrpack 或登记一个外链。"
   source: "来源"
   current: "当前版本"
   external: "外部链接"
   confirm-delete: "删除这个版本的整合包？回滚到该版本的客户端将无法下载。"
   upload: "上传 .mrpack"
-  upload-intro: "上传后自动计算 SHA-1，并作为新版本发布。"
+  upload-intro: "按所选格式解析版本并计算 SHA-1 / SHA-512。server-zip / raw 使用实例中填写的游戏版本。"
   limits: "PHP 限制：单文件 :upload，POST :post。整合包超过该限制时请改用下面的外部链接。"
   upload-button: "上传并发布新版本"
   external-title: "登记外链整合包"
@@ -168,6 +174,8 @@ packs:
     upload-unreadable: "无法读取上传的文件。"
     upload-empty: "上传的文件是空的。"
     upload-not-zip: "这不是一个有效的整合包（.mrpack 必须是 zip 压缩文件）。"
+    upload-invalid-metadata: "整合包元数据无效，或包含危险路径、未知加载器、超限条目；未发布。"
+    upload-unresolved-files: "CurseForge 文件仍是平台 ID 或直链不可用，请先解析并制作可分发包（建议 mrpack）。"
     upload-store-failed: "保存文件失败，请检查 storage/app 是否可写。"
 
 problem:
@@ -176,7 +184,7 @@ problem:
   id-charset: "实例标识含有不允许的字符"
   revision-negative: "版本号不能为负"
   pack-url-empty: "没有整合包"
-  pack-url-scheme: "整合包地址必须是 http 或 https"
+  pack-url-scheme: "整合包地址必须是公开 HTTPS"
   pack-url-host: "整合包地址缺少主机名"
   game-version-empty: "缺少游戏版本"
   pack-sha1-missing: "缺少整合包 SHA-1"
@@ -225,3 +233,168 @@ status:
   release-deleted: "版本已删除。"
 
 pack-size-missing: "官方整合包需要填写正整数文件大小（字节）。"
+
+update_policy:
+  prompt: "进服前提示"
+  background: "后台静默更新"
+  pinned: "固定版本，不自动升级"
+
+binding:
+  pack: "整合包"
+  vanilla: "仅版本/加载器"
+
+interop:
+  menu: "对外清单"
+  title: "对外清单"
+  intro: "启动器通过这个地址读取清单："
+  open: "打开"
+  friends-api: "友站实例接口："
+
+  field:
+    site_id: "站点标识"
+    site_id-hint: "字母、数字、下划线与短横线，最长 128 个字符。"
+    site_name: "站点名称"
+    site_name-hint: "来自 Blessing Skin 站点设置"
+    site_description: "描述"
+    site_domain: "站点域名"
+    site_domain-hint: "只填域名，例如 skin.sitmc.club，不要带 https:// 和路径。留空则用 APP_URL 配置的域名。"
+    domain: "域名"
+    domain-hint: "只填根域名，例如 mc.yudream.app。保存时会自动读取 https://{domain}/.well-known/mc-interop-v1.json；读取失败也会先保存，等待之后的同步。"
+    description: "描述"
+    manifest_url: "清单地址"
+    manifest_url-hint: "留空自动使用 https://{domain}/.well-known/mc-interop-v1.json。"
+
+  state:
+    ok: "正常"
+    stale: "已过期"
+    never: "未同步"
+
+  site:
+    title: "基本设置"
+
+  aggregation:
+    title: "友站同步"
+    enabled: "合并已同步的友站目录"
+    peer_ttl: "同步间隔"
+    minutes: ":minutes 分钟"
+    peer_ttl-hint: "默认 5 分钟；需配置定时任务或手动同步，公开读取不会触发网络请求。"
+    cron: "定时同步（cron）"
+    cron-hint: "在服务器 crontab 里加下面这一行，每 5 分钟执行一次；token 等同于同步密码，不要外传。"
+    cron-rotate: "重置 token"
+    cron-confirm: "重置后旧命令会失效，需要更新 crontab。继续？"
+
+  summary:
+    title: "概览"
+    packs: "清单条目"
+    peers: "友站"
+    diagnostics: "诊断"
+
+  publications:
+    title: "上架实例"
+    intro: "勾选后才会出现在对外清单；没勾选的实例不会公开。"
+    empty: "还没有实例。"
+    no-server: "缺服务器地址"
+    vanilla: "纯服务器"
+    revision-missing: "缺当前版本"
+    listed: "上架"
+    saving: "保存中…"
+    saved: "已保存"
+    save-failed: "保存失败，请重试"
+    save: "保存"
+
+  peers:
+    title: "友站"
+    intro: "这里列出要同步的友站。"
+    empty: "还没有友站。"
+    add: "添加友站"
+    sync: "同步全部"
+    sync-one: "同步"
+    state: "状态"
+    last-sync: "最近同步"
+    packs: "条目"
+    pending: "待识别"
+    enabled: "参与同步"
+    confirm-delete: "删除这个友站？"
+
+  peer:
+    title: "友站"
+    create-title: "添加友站"
+    edit-title: "编辑友站 :id"
+    auto-hint: "只需要填根域名；站点标识、名称和描述会从对方的 mc-interop 清单自动读取。"
+
+  status:
+    settings-saved: "互操作设置已保存。"
+    publications-saved: "发布选择已保存：当前推送 :count 个实例。"
+    peer-created: "友站已添加。"
+    peer-created-offline: "友站已添加；当前无法读取清单，等待首次同步。"
+    peer-saved: "友站已保存。"
+    peer-saved-offline: "友站已保存；当前无法读取清单，等待首次同步。"
+    peer-deleted: "友站及其快照已删除。"
+    peer-synced: "友站 :site 同步成功。"
+    peer-sync-failed: "友站 :site 同步失败： :error"
+    peers-synced: "友站同步完成：成功 :ok，失败 :failed。"
+    peers-sync-busy: "已有同步任务在跑，请稍后再试。"
+    token-rotated: "同步 token 已重置，请更新 crontab 命令。"
+
+  problem:
+    site-domain-invalid: "站点根域名只能是 host，例如 skin.sitmc.club，不能带 https:// 或路径。"
+    peer-domain-invalid: "友站根域名只能是 host，例如 mc.yudream.app，不能带 https:// 或路径。"
+    peer-manifest-url-invalid: "友站清单地址必须是公开 HTTPS 绝对地址。"
+    peer-site-id-taken: "这个站点标识已经被添加。"
+    peer-domain-taken: "这个域名已经添加过了。"
+    peer-site-id-collision: "友站上线后的站点标识和已有友站冲突，暂时保持离线状态。"
+    peer-self: "不能把本站自己添加为友站。"
+    peer-site-changed: "这个域名对应的站点标识和当前友站不一致；请删除后重新添加。"
+    peer-discovery-failed: "无法读取友站清单。"
+    peer-http-error: "友站清单返回了非 200 状态。"
+    peer-json-invalid: "友站返回的不是合法 JSON。"
+    peer-shape-invalid: "友站文档不是 v1 结构（缺少 site 或 packs）。"
+    peer-site-id-invalid: "友站文档里的 site.id 不合法。"
+    peer-domain-mismatch: "友站文档里的 site.domain 和填写的域名不一致。"
+    peer-document-too-large: "友站文档超过 1 MiB 上限。"
+    peer-timeout: "读取友站清单超时。"
+    peer-tls: "友站 TLS 校验失败，请检查 PHP 的 CA 信任库。"
+    peer-unreachable: "无法连接友站。"
+    peer-curl-missing: "服务器没有启用 cURL，无法读取友站。"
+    peer-redirect-invalid: "友站重定向到了不允许的地址（必须同源公开 HTTPS），已拒绝。"
+
+  diagnostic:
+    instance-id-invalid: "实例标识不合法，已跳过。"
+    server-missing: "该实例没有服务器地址，无法作为实例发布。"
+    game-version-missing: "缺少游戏版本，该实例不会出站。"
+    loader-invalid: "加载器不在允许的枚举内，该实例不会出站；请修正源数据后重试。"
+    revision-invalid: "当前版本号不合法，该实例不会出站。"
+    pack-revision-missing: "找不到当前 revision 对应的整合包，该实例不会出站。"
+    artifact-url-invalid: "整合包地址不是公开 HTTPS，该实例不会出站。"
+    artifact-size-missing: "缺少整合包文件大小，该实例不会出站。"
+    artifact-hash-missing: "缺少 SHA-1/SHA-512，该实例不会出站。"
+    site-id-invalid: "站点标识不合法，已回退为 sitmc。"
+    site-domain-invalid: "站点根域名不合法，已回退到请求域名。"
+    peer-config-invalid: "友站配置不完整，已跳过。"
+    peer-self-or-duplicate: "友站与本站同名或重复，已跳过。"
+    peer-manifest-invalid: "友站清单地址不合法，已跳过。"
+    peer-no-snapshot: "友站还没有成功同步过快照，暂不采入。"
+    peer-snapshot-invalid: "友站快照无法解析，暂不采入。"
+    peer-sync-failed: "友站同步失败，沿用最近一次成功快照。"
+    peer-document-invalid: "友站文档结构不合法，已跳过。"
+    peer-packs-missing: "友站文档缺少 packs 数组，已跳过。"
+    peer-entry-invalid: "友站条目结构不合法，已跳过。"
+    peer-entry-id-invalid: "友站条目 id 不合法，已跳过。"
+    peer-entry-id-collision: "友站条目与本站或已采入条目 ID 冲突，已丢弃。"
+    peer-entry-server-missing: "友站条目没有服务器地址，已丢弃。"
+    peer-entry-game-version-missing: "友站条目缺少游戏版本，已丢弃。"
+    peer-entry-loader-invalid: "友站条目使用了不支持的加载器，已丢弃。"
+    peer-entry-revision-invalid: "友站整合包条目缺少合法 revision，已丢弃。"
+    peer-entry-artifact-invalid: "友站整合包制品信息不合法（HTTPS/size/hash/format），已丢弃。"
+    peer-entry-revision-without-artifact: "友站无整合包条目却带了 revision，已丢弃。"
+    peer-site-id-collision: "友站上线后的站点标识和已有友站冲突，暂时保持离线状态。"
+    peer-self: "这个友站解析出来是本站自己，已跳过。"
+    peer-shape-invalid: "友站文档不是 v1 结构（缺少 packs 数组），未采入。"
+    peer-timeout: "拉取友站超时。"
+    peer-tls: "友站 TLS 校验失败，请检查 PHP 的 CA 信任库。"
+    peer-connection: "无法连接友站。"
+    peer-curl-missing: "服务器没有启用 cURL，无法拉取友站。"
+    peer-redirect-invalid: "友站重定向到了不允许的地址（必须同源公开 HTTPS），已拒绝。"
+    peer-redirect-limit: "友站重定向次数过多。"
+    peer-json-invalid: "友站返回的不是合法 JSON。"
+    peer-document-too-large: "友站文档超过 1 MiB 上限。"

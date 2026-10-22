@@ -22,7 +22,7 @@ final class PackStore
     /**
      * @return array{disk_path: string, original_name: string, sha1: string, size: int}
      */
-    public function put(UploadedFile $file, string $instanceId, int $revision): array
+    public function put(UploadedFile $file, string $instanceId, int $revision, string $format = 'mrpack'): array
     {
         if (! $file->isValid()) {
             throw new RuntimeException('upload-invalid');
@@ -40,10 +40,11 @@ final class PackStore
             throw new RuntimeException('upload-empty');
         }
 
-        if (! $this->looksLikeZip($realPath)) {
+        if ($format !== 'raw' && ! $this->looksLikeZip($realPath)) {
             throw new RuntimeException('upload-not-zip');
         }
 
+        $metadata = (new PackMetadata)->read($realPath, $format);
         $sha1 = sha1_file($realPath);
 
         if ($sha1 === false) {
@@ -55,7 +56,7 @@ final class PackStore
             self::DIRECTORY,
             $instanceId,
             $revision,
-            substr($sha1, 0, 8)
+            $sha1
         );
 
         $stream = fopen($realPath, 'rb');
@@ -78,7 +79,10 @@ final class PackStore
             'disk_path' => $path,
             'original_name' => $file->getClientOriginalName(),
             'sha1' => $sha1,
+            'sha512' => hash_file('sha512', $realPath),
             'size' => $size,
+            'format' => $format,
+            'metadata' => $metadata,
         ];
     }
 

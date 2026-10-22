@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Arr;
 
 class DetectLanguagePrefer
@@ -19,7 +19,7 @@ class DetectLanguagePrefer
         ) {
             $locale = $alias;
         }
-        $locale ?? app()->getLocale();
+        $locale ??= app()->getLocale();
         if (!Arr::has(config('locales'), $locale)) {
             $locale = config('app.fallback_locale');
         }
@@ -28,7 +28,10 @@ class DetectLanguagePrefer
 
         /** @var Response */
         $response = $next($request);
-        $response->cookie('locale', $locale, 120);
+        // Public catalog responses are shared cache entries, so do not attach a visitor cookie.
+        if (! $response->headers->hasCacheControlDirective('public')) {
+            $response->headers->setCookie(cookie('locale', $locale, 120));
+        }
 
         return $response;
     }

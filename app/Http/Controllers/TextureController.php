@@ -56,10 +56,11 @@ class TextureController extends Controller
         $disk = Storage::disk('textures');
         abort_if($disk->missing($hash), 404);
 
+        $request->validate(['height' => 'sometimes|integer|between:1,1024']);
         $height = (int) $request->query('height', 200);
         $now = Carbon::now();
         $response = Cache::remember(
-            'preview-t'.$tid."-$format",
+            'preview-t'.$tid."-h$height-$format",
             option('enable_preview_cache') ? $now->addYear() : $now->addMinute(),
             function () use ($minecraft, $disk, $texture, $hash, $height, $usePNG) {
                 $file = $disk->get($hash);
@@ -100,6 +101,7 @@ class TextureController extends Controller
             ->withHeaders([
                 'Content-Type' => 'image/png',
                 'Content-Length' => $disk->size($hash),
+                'Access-Control-Allow-Origin' => '*',
             ])
             ->setLastModified($lastModified);
     }
@@ -138,6 +140,7 @@ class TextureController extends Controller
             return abort(422);
         }
 
+        $request->validate(['size' => 'sometimes|integer|between:1,512']);
         $size = (int) $request->query('size', 100);
         $mode = $request->has('3d') ? '3d' : '2d';
         $usePNG = $request->has('png') || !(imagetypes() & IMG_WEBP);

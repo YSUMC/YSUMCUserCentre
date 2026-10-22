@@ -1,0 +1,19 @@
+PASS: valid official pack publishes
+PASS: missing size cannot publish
+PASS: insecure pack URL cannot publish
+PASS: invalid digest cannot publish
+PASS: modern classic skin accepted
+PASS: legacy classic skin accepted
+PASS: slim skin accepted
+PASS: legacy dimensions rejected for slim skin
+PASS: cape accepted
+PASS: matching newer release offered
+PASS: current version has no update
+PASS: other platform never receives Windows artifact
+PASS: unsigned release withheld
+PASS: excluded route /oa-login
+PASS: excluded route /eduroam/login
+PASS: excluded route /events
+PASS: excluded route /admin/activity
+PASS: excluded route /profile/verify-realname
+PASS: excluded route /admin/export

@@ -1,0 +1,13 @@
+MainPID=2020612
+ExecStart={ path=/www/server/nodejs/v26.12.1/bin/node ; argv[]=/www/server/nodejs/v26.12.1/bin/node dist/main.js ; ignore_errors=no ; start_time=[Thu 2026-10-22 01:52:22 CST] ; stop_time=[n/a] ; pid=2020612 ; code=(null) ; status=0/0 }
+UMask=0027
+WorkingDirectory=/www/wwwroot/ysumcusercentre/janus
+User=www
+Group=www
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+NoNewPrivileges=yes
+ActiveState=active
+SubState=running
+DropInPaths=/etc/systemd/system/ysumc-janus.service.d/20-node-runtime.conf

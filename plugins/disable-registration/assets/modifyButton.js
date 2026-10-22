@@ -1,0 +1,1 @@
+!function(t){"use strict";const e=document.querySelector(".main-button");if(e&&e.href.endsWith("/auth/register")){e.textContent=t.t("auth.login");const n=new URL(t.base_url);n.pathname="/auth/login",e.href=n.toString()}}(blessing);

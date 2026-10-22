@@ -23,6 +23,8 @@ class SessionController extends Controller
 {
     public function joinServer(Request $request, Filter $filter): Response
     {
+        @ ini_set('memory_limit', '32M');
+
         $validation = Validator::make($request->all(), [
             'selectedProfile' => ['required', 'string'],
             'serverId' => ['required', 'string'],
@@ -45,7 +47,7 @@ class SessionController extends Controller
 
         $session = ['profile' => $selectedProfile, 'ip' => $ip];
 
-        Log::channel('ygg')->info("Player [$selectedProfile] is trying to join server [$serverId] from [$ip]");
+        Log::channel('ygg')->info("Player [$selectedProfile] is trying to join server [$serverId] from [$ip] with access token [$token->jwt]");
 
         if ($token->selectedProfile !== $selectedProfile) {
             Log::channel('ygg')->info("Player [$selectedProfile] does not match the selected profile in Access Token [{$token->selectedProfile}]");
@@ -62,7 +64,28 @@ class SessionController extends Controller
             throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.player.owner'));
         }
 
+        /*
+      	if (option('union_use_blacklist_locally')) {
+        	try {
+            	$response = Http::timeout(5.0)->get(option('union_api_root').'/api/union/blacklist/checkallowed', ['email' => $player->user->email]);
+                if ($response->ok()) {
+                	if ($response->json() != true) {
+                    	throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.user.banned'));
+                    }
+                } else {
+                	throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.user.banned'));
+                }
+            } catch (\Error | \Exception $e) {
+            	throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.user.banned'));
+            }
+        }
+        */
+
         Log::channel('ygg')->info("Player [$selectedProfile]'s name is [$player->name], belongs to user [$player->uid]");
+
+        if (option('require_verification') && $player->user->verified === false) {
+            throw new ForbiddenOperationException(trans('LittleSkin\\YggdrasilConnect::exceptions.user.not-verified'));
+        }
 
         // 加入服务器
         Cache::put("yggdrasil-server-$serverId", $session, 120);
@@ -73,7 +96,7 @@ class SessionController extends Controller
             'action' => 'join',
             'user_id' => $player->uid,
             'player_id' => $player->pid,
-            'parameters' => json_encode($request->only('selectedProfile', 'serverId')),
+            'parameters' => json_encode($request->except('accessToken')),
         ]);
 
         return response()->noContent();
@@ -81,6 +104,8 @@ class SessionController extends Controller
 
     public function hasJoinedServer(Request $request): Response|JsonResponse
     {
+        @ ini_set('memory_limit', '32M');
+
         $validation = Validator::make($request->all(), [
             'username' => ['required', 'string'],
             'serverId' => ['required', 'string'],
@@ -117,8 +142,8 @@ class SessionController extends Controller
                     'action' => 'has_joined',
                     'user_id' => $profile->player->uid,
                     'player_id' => $profile->player->pid,
-                    'parameters' => json_encode($request->only('serverId', 'ip')),
-                ], $ip ? compact('ip') : []));
+                    'parameters' => json_encode($request->except('username')),
+                ], ($ip ? compact('ip') : [])));
 
                 return response()->json()->setContent($response);
             }

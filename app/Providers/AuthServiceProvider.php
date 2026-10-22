@@ -4,12 +4,34 @@ namespace App\Providers;
 
 use App\Models\Scope;
 use Illuminate\Database\QueryException;
+
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;
 
 class AuthServiceProvider extends ServiceProvider
 {
+    public function register()
+    {
+        parent::register();
+        Passport::$clientUuids = false;
+        Passport::$deviceCodeGrantEnabled = false; // Device authorization is provided by Janus.
+        Passport::$registersJsonApiRoutes = true;
+        Passport::useClientModel(\App\OAuth\JanusClient::class);
+        $this->app->bind(
+            \Laravel\Passport\Http\Controllers\ClientController::class,
+            \App\OAuth\LegacyClientController::class
+        );
+        $this->app->bind(
+            \Laravel\Passport\ClientRepository::class,
+            \App\OAuth\ConfiguredClientRepository::class
+        );
+        $this->app->bind(
+            \Laravel\Passport\Bridge\ClientRepository::class,
+            \App\OAuth\JanusClientRepository::class
+        );
+    }
+
     /**
      * The policy mappings for the application.
      *
@@ -27,7 +49,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        Passport::routes();
+        // Preserve existing numeric client identifiers shared with Janus.
+        Passport::$clientUuids = false;
+        Passport::authorizationView('vendor.passport.authorize');
 
         $defaultScopes = [
             'User.Read' => 'auth.oauth.scope.user.read',

@@ -1,0 +1,39 @@
+PASS: GET /auth/login no server error
+PASS: FPM renders login with Twig 3
+PASS: CSRF token rendered
+PASS: POST /auth/login no server error
+PASS: FPM rejects login without CSRF token
+PASS: POST /auth/login no server error
+PASS: Real session login succeeds
+PASS: GET /user no server error
+PASS: Session cookie authenticates next HTTP request
+PASS: GET /admin no server error
+PASS: Ordinary user cannot access admin over FPM
+PASS: GET /api/janus/.well-known/openid-configuration no server error
+PASS: Janus advertises the isolated issuer
+PASS: POST /api/janus/device/auth no server error
+PASS: Device authorization accepts shared legacy client
+PASS: POST /api/janus/token no server error
+PASS: Unapproved device code cannot issue a token
+PASS: GET /api/janus/device no server error
+PASS: POST /api/janus/device no server error
+PASS: POST /api/janus/device no server error
+PASS: Passport 13 authorization approval nonce present
+PASS: POST /oauth/authorize no server error
+PASS: POST /yggc/callback no server error
+PASS: Device confirmation, PHP consent and profile selection complete
+PASS: POST /api/janus/token no server error
+PASS: Approved device code issues tokens
+PASS: Access, refresh and ID tokens returned
+PASS: Janus JWT binds the correct user and profile
+PASS: GET /yggc/userinfo no server error
+PASS: PHP 8.5 accepts Janus JWT and returns selected profile
+PASS: POST /api/yggdrasil/authserver/validate no server error
+PASS: Janus token works for Yggdrasil
+PASS: POST /api/janus/token no server error
+PASS: Janus refresh token rotates successfully
+PASS: POST /api/yggdrasil/authserver/invalidate no server error
+PASS: PHP revokes the current Janus access token
+PASS: POST /api/janus/token no server error
+PASS: PHP revocation also blocks Janus refresh
+Completed 38 HTTP checks; no credentials printed.

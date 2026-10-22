@@ -1,0 +1,7 @@
+{
+  "name": "blessing/filter",
+  "version": "v1.4.0",
+  "reference": "725c5b56ff7736027a5b7908c660f7b4db694a0e",
+  "archive_sha256": "f1ed09de037da3b36a9a6e401bd55fbe5e96aa8471cf0f2ace7c93728ebe7bce",
+  "changes": "Local Laravel 13 compatibility fork; regression validation required."
+}

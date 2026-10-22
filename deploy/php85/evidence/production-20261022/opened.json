@@ -1,0 +1,17 @@
+{
+  "opened_at": "2026-10-21T18:35:50.260677+00:00",
+  "php": "8.5.12",
+  "node": "26.12.1",
+  "checks": [
+    "Public HTTPS login page restored",
+    "Public eduroam form renders",
+    "Public /api/launcher/manifest",
+    "Public /api/launcher/announcements",
+    "Public Janus discovery and public-only JWKS",
+    "Protected /.env",
+    "Protected /.user.ini",
+    "Protected /test.php",
+    "HTTP redirects to HTTPS"
+  ],
+  "public_access_restored": true
+}

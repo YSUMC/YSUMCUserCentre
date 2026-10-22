@@ -59,7 +59,7 @@ class OIDCController extends Controller
             }
 
             $codeId = $authCode->id;
-            $scopes = json_decode($authCode->scopes);
+            $scopes = is_array($authCode->scopes) ? $authCode->scopes : json_decode($authCode->scopes, true);
             if (in_array(Scope::PROFILE_SELECT, $scopes)) {
                 return view('LittleSkin\YggdrasilConnect::select-profile', [
                     'name' => $client->name,

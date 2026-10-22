@@ -1,0 +1,8 @@
+{
+  "unit": "ysumc-janus.service",
+  "pid": 1163747,
+  "source_executable": "/www/server/nodejs/v22.18.0/bin/node (deleted)",
+  "version": "v22.18.0",
+  "sha256": "ccacb2d6d87ba6d118b2bffc1ae33747a05cc5fc6b1f1ec4fc1d420b687e952d",
+  "unit_sha256": "c177ecedd22ff7988bbf1e716c6e2c1b21291826818c6fc9749baa18f354dac4"
+}

@@ -1,0 +1,30 @@
+{
+  "observed_at": "2026-10-21T17:55:20.126389+00:00",
+  "service": "ysumc-janus.service",
+  "state": "active/running",
+  "node_version": "26.12.1",
+  "executable": "/www/server/nodejs/v26.12.1/bin/node",
+  "pid": 2020612,
+  "invocation": "97b00727b71e48c3856ee49311098b89",
+  "restarts_total": 252,
+  "loopback_endpoint": "127.0.0.1:13010",
+  "loopback_only": true,
+  "checks": {
+    "discovery": true,
+    "public_jwks": true,
+    "database_client_lookup": true,
+    "invalid_client_rejected": true,
+    "userinfo_redirect": true
+  },
+  "protected_files_unchanged": 333,
+  "dropin_sha256": "73808f705efa13efd4308b3ec12c96437c06283db8802365af638667180160cd",
+  "production_site_stopped": true,
+  "production_php81": "inactive",
+  "php_switched": false,
+  "limitations": [
+    "Full interactive login remains unavailable while the PHP site is stopped."
+  ],
+  "stable_since": "2026-10-21T17:54:07.214939+00:00",
+  "pid_unchanged_since_first_check": true,
+  "no_new_restarts": true
+}

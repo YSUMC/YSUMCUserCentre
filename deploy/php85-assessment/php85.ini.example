@@ -1,0 +1,25 @@
+; Candidate application only. Compile required extensions into this PHP 8.5 runtime.
+[PHP]
+date.timezone = Asia/Shanghai
+memory_limit = 256M
+max_execution_time = 60
+max_input_time = 60
+post_max_size = 520M
+upload_max_filesize = 512M
+upload_tmp_dir = /tmp
+expose_php = Off
+display_errors = Off
+log_errors = On
+error_reporting = E_ALL
+error_log = /www/wwwroot/ysumcusercentre-next/storage/logs/php-error.log
+open_basedir = /www/wwwroot/ysumcusercentre-next:/tmp:/proc
+cgi.fix_pathinfo = 0
+register_argc_argv = Off
+session.upload_progress.enabled = Off
+session.save_path = /tmp
+openssl.cafile = /etc/ssl/certs/ca-certificates.crt
+curl.cainfo = /etc/ssl/certs/ca-certificates.crt
+opcache.enable = 1
+opcache.enable_cli = 0
+opcache.validate_timestamps = 1
+opcache.jit = disable

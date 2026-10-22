@@ -3,7 +3,7 @@
   "description": "A web application brings your custom skins back in offline Minecraft servers.",
   "license": "MIT",
   "require": {
-    "php": ">=8.0.2",
+    "php": "~8.5.0",
     "ext-ctype": "*",
     "ext-gd": "*",
     "ext-json": "*",
@@ -18,35 +18,30 @@
     "blessing/texture-renderer": "^0.2",
     "composer/ca-bundle": "^1.2",
     "composer/semver": "^3.2",
-    "doctrine/dbal": "^2.10",
-    "doctrine/inflector": "^1.3",
-    "facade/ignition": "^2.0",
-    "gregwar/captcha": "1.*",
+    "doctrine/inflector": "^2.0",
+    "gregwar/captcha": "^2.1",
     "guzzlehttp/guzzle": "^7.0",
     "intervention/image": "^2.7",
-    "laravel/framework": "^8.0",
-    "laravel/passport": "^10.0",
-    "lorisleiva/laravel-search-string": "^1.0",
-    "nesbot/carbon": "^2.0",
-    "nunomaduro/collision": "^5.0",
-    "rcrowe/twigbridge": "^0.12",
+    "laravel/framework": "^13.0",
+    "laravel/passport": "^13.0",
+    "lorisleiva/laravel-search-string": "1.3.1",
+    "nesbot/carbon": "^3.8",
+    "nunomaduro/collision": "^8.9",
+    "rcrowe/twigbridge": "^0.14.8",
     "spatie/laravel-translation-loader": "^2.6",
-    "symfony/process": "^5.0",
-    "symfony/yaml": "^5.0",
-    "twig/twig": "^2.11",
-    "vectorface/whip": "^0.3.2"
+    "symfony/process": "^8.0",
+    "symfony/yaml": "^8.0",
+    "twig/twig": "^3.21",
+    "vectorface/whip": "^0.5",
+    "lcobucci/jwt": "^5.5",
+    "lcobucci/clock": "^3.5"
   },
   "require-dev": {
-    "barryvdh/laravel-debugbar": "^3.5",
-    "barryvdh/laravel-ide-helper": "^2.10",
-    "fakerphp/faker": "^1.13",
-    "friendsofphp/php-cs-fixer": "^3.0",
-    "laravel/browser-kit-testing": "^6.1",
-    "laravel/tinker": "^2.4",
-    "mockery/mockery": "^1.4",
-    "phpunit/phpunit": "^9.4",
-    "symfony/css-selector": "^5.0",
-    "symfony/dom-crawler": "^5.0"
+    "fakerphp/faker": "^1.24",
+    "mockery/mockery": "^1.6",
+    "phpunit/phpunit": "^12.5",
+    "symfony/css-selector": "^8.0",
+    "symfony/dom-crawler": "^8.0"
   },
   "autoload": {
     "psr-4": {
@@ -71,7 +66,13 @@
   },
   "config": {
     "preferred-install": "dist",
-    "sort-packages": true
+    "sort-packages": true,
+    "allow-plugins": {
+      "php-http/discovery": false
+    },
+    "platform": {
+      "php": "8.5.12"
+    }
   },
   "extra": {
     "laravel": {
@@ -80,10 +81,17 @@
       ]
     }
   },
-  "repositories": {
-    "packagist": {
+  "repositories": [
+    {
+      "type": "path",
+      "url": "packages/*",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
       "type": "composer",
-      "url": "https://packagist.org/"
+      "url": "https://repo.packagist.org"
     }
-  }
+  ]
 }

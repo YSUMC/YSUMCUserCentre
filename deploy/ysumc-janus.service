@@ -6,7 +6,7 @@ After=network.target docker.service
 Type=simple
 User=www
 Group=www
-WorkingDirectory=/data/program/ysumcusercentre/janus
+WorkingDirectory=/www/wwwroot/ysumcusercentre/janus
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/main.js
 Restart=on-failure

@@ -1,0 +1,8 @@
+{
+  "name": "lorisleiva/laravel-search-string",
+  "version": "v1.3.0",
+  "reference": "3842079d0fe6315a3a24dbc30c15ed590c635357",
+  "archive_sha256": "f3392e114215a32911fd5cf9d06ac3d696368a913dc55cf66b0261b4f57cd257",
+  "local_version": "1.3.1",
+  "changes": "Local Laravel 13 fork: replaces HOA compiler/adapter with bounded native parser; removes hoa/compiler and sanmai/hoa-protocol plus 11 transitives; fixes multi-column search and date-range grouping. Verified by frozen legacy parser fixtures and application database regressions. Not an upstream release."
+}

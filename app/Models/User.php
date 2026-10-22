@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
+use Laravel\Passport\Contracts\OAuthenticatable;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
 
 /**
@@ -28,7 +29,7 @@ use Lorisleiva\LaravelSearchString\Concerns\SearchString;
  * @property Collection  $players
  * @property Collection  $closet
  */
-class User extends Authenticatable
+class User extends Authenticatable implements OAuthenticatable
 {
     use Notifiable;
     use HasFactory;
@@ -59,6 +60,21 @@ class User extends Authenticatable
     ];
 
     protected $hidden = ['password', 'remember_token'];
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $user) {
+            if ($user->isDirty(['password', 'email'])) {
+                $user->setRememberToken(\Illuminate\Support\Str::random(60));
+            }
+        });
+        static::updated(function (self $user) {
+            if ($user->wasChanged(['password', 'email'])) {
+                app(\App\Services\RevokeUserTokens::class)->revoke($user);
+                app(\App\Services\PasswordResetTokens::class)->forget($user);
+            }
+        });
+    }
 
     protected $searchStringColumns = [
         'uid',

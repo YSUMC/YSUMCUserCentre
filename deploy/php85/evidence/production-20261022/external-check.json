@@ -1,0 +1,6 @@
+{
+  "location": "External Windows client",
+  "login_status": 200,
+  "login_form": true,
+  "issuer": "https://skin.ysumc.net/api/janus"
+}

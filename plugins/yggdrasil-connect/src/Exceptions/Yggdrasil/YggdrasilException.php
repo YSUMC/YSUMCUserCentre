@@ -16,7 +16,7 @@ abstract class YggdrasilException extends BaseException
 
         $this->cause = $cause;
 
-        Log::channel('ygg')->info(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'], $this->statusCode, $this->error), compact('errorMessage', 'cause'));
+        Log::channel('ygg')->info(sprintf('%s %s %s', request()->server('SERVER_PROTOCOL', 'HTTP/1.1'), $this->statusCode, $this->error), compact('errorMessage', 'cause'));
     }
 
     public function render(): JsonResponse

@@ -5,11 +5,15 @@ namespace SITMinecraft\Launcher\Http\Controllers;
 use App\Models\Player;
 use App\Models\Texture;
 use App\Models\User;
+use App\Http\Controllers\SkinlibController;
+use App\Http\Controllers\ClosetController;
 use Blessing\Filter;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use SITMinecraft\Launcher\Auth\TokenVerifier;
 
 /**
@@ -107,54 +111,61 @@ final class SkinController
             return $this->failure('missing_name', 'A texture name is required.');
         }
 
-        $regexp = option('texture_name_regexp');
-        if (is_string($regexp) && $regexp !== '' && @preg_match('/'.$regexp.'/u', $name) !== 1) {
-            return $this->failure('invalid_name', 'That texture name is not allowed on this site.');
-        }
-
-        $hash = hash('sha256', $bytes);
-        $duplicate = Texture::where('hash', $hash)
-            ->where(fn ($query) => $query->where('public', true)->orWhere('uploader', $owner->uid))
-            ->first();
-        if ($duplicate !== null) {
-            $owner->closet()->syncWithoutDetaching([$duplicate->tid => ['item_name' => $duplicate->name]]);
-
-            return response()->json([
-                'texture' => $this->textureView($duplicate),
-                'created' => false,
-            ]);
-        }
-
         $isPublic = filter_var(
             $request->input('public', true),
             FILTER_VALIDATE_BOOLEAN,
             FILTER_NULL_ON_FAILURE
         );
 
-        $texture = new Texture();
-        $texture->name = $name;
-        $texture->type = $type;
-        $texture->hash = $hash;
-        $texture->size = max(1, (int) ceil(strlen($bytes) / 1024));
-        $texture->public = $isPublic ?? true;
-        $texture->uploader = $owner->uid;
-        $texture->upload_at = now();
-        $texture->save();
-
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
-        $disk = Storage::disk('textures');
-        if ($disk->missing($hash)) {
-            $disk->put($hash, $bytes);
+        if ($isPublic === null) {
+            return $this->failure('invalid_privacy', 'Public must be a boolean.');
         }
 
-        $owner->closet()->syncWithoutDetaching([$texture->tid => ['item_name' => $name]]);
+        $path = tempnam(sys_get_temp_dir(), 'launcher-texture-');
+        if ($path === false) {
+            throw new \RuntimeException('Unable to stage launcher texture.');
+        }
+        try {
+            if (file_put_contents($path, $bytes) !== strlen($bytes)) {
+                throw new \RuntimeException('Unable to stage launcher texture.');
+            }
+            $upload = Request::create('/texture', 'POST', [
+                'name' => $name, 'type' => $type, 'public' => $isPublic,
+            ], [], ['file' => new UploadedFile($path, 'texture.png', 'image/png', null, true)]);
 
-        $this->filter->apply('uploaded_texture', [$texture]);
-
-        return response()->json([
-            'texture' => $this->textureView($texture),
-            'created' => true,
-        ]);
+            return DB::transaction(function () use ($owner, $upload) {
+                $lockedOwner = User::whereKey($owner->uid)->lockForUpdate()->firstOrFail();
+                abort_if($lockedOwner->isBanned() || $lockedOwner->isAuthOnly(), 403);
+                abort_if(option('require_verification') && !$lockedOwner->verified, 403);
+                $upload->setUserResolver(fn () => $lockedOwner);
+                $guard = Auth::guard();
+                $previous = $guard->user();
+                $guard->setUser($lockedOwner);
+                try {
+                    $dispatcher = app(Dispatcher::class);
+                    // Reuse the website's validation, plugin policy, accounting
+                    // and events. The launcher only adapts the wire format.
+                    $result = app(SkinlibController::class)->handleUpload($upload, $this->filter, $dispatcher)->getData(true);
+                    if (!in_array($result['code'], [0, 2], true)) {
+                        return $this->failure('upload_rejected', $result['message']);
+                    }
+                    $texture = Texture::findOrFail($result['data']['tid']);
+                    if ($result['code'] === 2 && !$lockedOwner->closet()->where('texture_tid', $texture->tid)->exists()) {
+                        $add = Request::create('/user/closet', 'POST', ['tid' => $texture->tid, 'name' => $texture->name]);
+                        $add->setUserResolver(fn () => $lockedOwner);
+                        $added = app(ClosetController::class)->add($add, $dispatcher, $this->filter)->getData(true);
+                        if ($added['code'] !== 0) {
+                            return $this->failure('closet_rejected', $added['message']);
+                        }
+                    }
+                    return response()->json(['texture' => $this->textureView($texture), 'created' => $result['code'] === 0]);
+                } finally {
+                    $previous ? $guard->setUser($previous) : $guard->forgetUser();
+                }
+            });
+        } finally {
+            if (is_file($path)) unlink($path);
+        }
     }
 
     public function equip(Request $request, Dispatcher $dispatcher): JsonResponse

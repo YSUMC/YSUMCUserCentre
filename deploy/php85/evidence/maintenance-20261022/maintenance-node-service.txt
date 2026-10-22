@@ -1,0 +1,6 @@
+MainPID=1972980
+ExecStart={ path=/opt/ysumc-php85-candidate/runtimes/node-v22.23.4-linux-x64/bin/node ; argv[]=/opt/ysumc-php85-candidate/runtimes/node-v22.23.4-linux-x64/bin/node dist/main.js ; ignore_errors=no ; start_time=[Thu 2026-10-22 01:21:18 CST] ; stop_time=[n/a] ; pid=1972980 ; code=(null) ; status=0/0 }
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+NoNewPrivileges=yes

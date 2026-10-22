@@ -152,10 +152,14 @@ final class LauncherRepository
         $values['instance_id'] = $instanceId;
         $values['revision'] = $revision;
 
-        DB::table(LauncherSchema::PACKS)->updateOrInsert(
-            ['instance_id' => $instanceId, 'revision' => $revision],
-            $values
-        );
+        DB::transaction(function () use ($instanceId, $revision, $values): void {
+            $instance = DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            if ($instance === null || $revision <= max((int) $instance->revision, $this->highestRevision($instanceId))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['revision' => '版本号必须递增，请刷新页面后重试。']);
+            }
+            $values += ['game_version' => $instance->game_version, 'loader' => $instance->loader, 'loader_version' => $instance->loader_version];
+            DB::table(LauncherSchema::PACKS)->insert($values);
+        });
     }
 
     public function deletePack(string $instanceId, int $revision): void
@@ -189,6 +193,7 @@ final class LauncherRepository
     {
         DB::table(LauncherSchema::INSTANCES)
             ->where('instance_id', $instanceId)
+            ->where('revision', '<', $revision)
             ->update(['revision' => max(0, $revision), 'updated_at' => now()]);
     }
 
@@ -204,12 +209,19 @@ final class LauncherRepository
             if ((int) $instance->revision === $revision) {
                 return $revision;
             }
+            if (empty($pack['game_version'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'revision' => '旧版本未保存游戏/加载器元数据，请重新上传或登记旧包生成新版本。',
+                ]);
+            }
             $next = max((int) $instance->revision, $this->highestRevision($instanceId)) + 1;
             unset($pack['id'], $pack['instance_id'], $pack['revision']);
             $pack['created_at'] = now();
             $pack['updated_at'] = now();
             $this->savePack($instanceId, $next, $pack);
             $this->setRevision($instanceId, $next);
+            $this->saveInstance(['instance_id' => $instanceId, 'game_version' => $pack['game_version'],
+                'loader' => $pack['loader'], 'loader_version' => $pack['loader_version']]);
             return $next;
         });
     }

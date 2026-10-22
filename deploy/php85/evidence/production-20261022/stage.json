@@ -1,0 +1,7 @@
+{
+  "release": "/www/wwwroot/ysumcusercentre-php85-20261022",
+  "runtime": "/opt/ysumc/php-8.5.12",
+  "backup": "/www/server/php-compat-assessments/20261022-migration/production-cutover-20261022",
+  "restored_tables": 32,
+  "source_commit": "16a18ccb9f4ec11b9b39a91ccb1350419d50bf7a"
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache"
+         failOnWarning="true" failOnRisky="true">
+  <testsuites>
+    <testsuite name="PHP 8.5 application compatibility">
+      <directory>tests/Compatibility</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <env name="APP_ENV" value="testing" force="true"/>
+    <env name="MAIL_MAILER" value="log" force="true"/>
+    <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+  </php>
+</phpunit>
