@@ -1,0 +1,20 @@
+{
+  "passed": 14,
+  "checks": [
+    "Public login serves the application",
+    "Anonymous browser bootstrap is populated",
+    "Public interop identity is correct",
+    "Public interop mirrors agree",
+    "Public ETag conditional request works",
+    "Public Janus issuer is correct",
+    "Protected route /.env",
+    "Protected route /.user.ini",
+    "Protected route /unexpected.php",
+    "Protected route /api/launcher/skins",
+    "Browser asset /meta.js",
+    "Browser asset /app/style.7eb5d06.css",
+    "Browser asset /ysumc/theme.css",
+    "Browser asset /ysumc/layout.css"
+  ],
+  "published_entries": 0
+}

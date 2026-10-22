@@ -1,5 +1,7 @@
 # launcher 互操作端点：本地验收与后续部署
 
+**部署更新：已按用户后续授权合并至 `YSUMC-dev` 并在 PHP 8.5.12 上部署、恢复访问。下文保留原本地开发阶段记录；新增修复、生产验收和回滚见 [本次发布记录](REVIEW-RELEASE-20261022.md)。**
+
 状态：独立分支 `codex/launcher-interop-v1`，基于本地安全修复提交 `cae6bad`；尚未部署，线上继续停站和停止 PHP。参考仓库 `learning/sitmc-launcher` 已从 `04afd85` 快进到 `45935d7`（SIT 1.3.0）。实现按用户提供的 mc-interop v1 文档适配，插件版本为 1.3.1。
 
 ## 本地验证
