@@ -26,6 +26,25 @@ bash /www/server/php-compat-assessments/20261022-consolidation/rollback.sh
 
 该回滚从压缩备份恢复旧程序目录，保留当前数据库实体目录、上传文件和会话，恢复本次修改前的插件文件、`.user.ini`、服务和站点路径。它不会导入旧 SQL；回滚本身会重新产生旧版本目录，并短暂停止 PHP-FPM 和 Janus。此次按要求未实际执行回滚演练。下文的发布路径、验证数量和回滚记录均属于**首次发布历史**，不代表本次重新执行。
 
+## 后续安装：CAS 与邀请码插件（仅安装，不启用）
+
+根据用户提供的 `bs-plugin-auth-cas-main-0.2.2.zip` 和 `1760595431-invitation-codes.zip` 完成适配，在独立分支 `codex/cas-invitation-compat` 保存源码。
+
+- CAS 安装目录为 `plugins/auth-cas`，本地适配版本 `0.2.3-ysumc.1`。增加 `config/auth-cas.php`，运行时读取缓存配置；命令行不启动 CAS 浏览器会话；补充退出/密码重置页面的 Web 会话中间件。默认验证 CAS 服务器证书，支持 `CAS_CA_BUNDLE` 指定受信任 CA。保留安装包自带的 phpCAS 1.6.1，并修正三处隐式可空参数、旧 boolean 转换和 switch 分号语法。
+- 邀请码安装目录为 `plugins/invitation-codes`，本地适配版本 `3.1.3-ysumc.1`。输入框由服务端模板提供，使用现有注册请求钩子传递邀请码，不依赖 React 全局对象或 `ReactDOM.render`；后台编辑使用原生 fetch 和 CSRF。修复描述校验失败时的未定义变量、清理失败注册残留的邀请码状态，并保留其他注册限制插件的拒绝结果。
+- **两个插件均未启用**。未填写 CAS 配置、未生成邀请码、未执行插件启用回调；邀请码数据表状态、注册策略、已有启用插件列表和 `.env` 均保持不变。站点原本关闭注册，`/auth/register` 保持 503“本站已关闭注册”；登录页和 Janus 元数据保持 200。
+- 完成 84 个 PHP 文件语法及弃用语法检查、2 个 JavaScript 文件语法检查、安装文件哈希一致性检查。未跑回归或真实登录/注册测试，未声称完成 CAS 对接验证。
+
+私有安装快照、适配包、原始包哈希、配置缓存备份和回滚脚本位于 `/www/server/php-compat-assessments/20261022-cas-invitation-install`。首次安装的入口检查将原有注册关闭响应误判为异常，已自动回滚；确认基线后重新安装完成，两个插件始终未启用。脱敏最终状态见 `evidence/cas-invitation-install-20261022/installed-status.json`。
+
+需要撤回本次安装时，在两个插件仍未启用的前提下运行：
+
+```sh
+bash /www/server/php-compat-assessments/20261022-cas-invitation-install/rollback.sh
+```
+
+脚本将本次安装文件移回私有目录并重建配置缓存，不覆盖数据库，也不改变注册规则。
+
 ## 首次发布运行状态
 
 - PHP 官网本次核查最新稳定版为 **8.5.12**（https://www.php.net/downloads.php）。服务器已有此前完整构建的同版本，核验后继续使用，无需重复编译或退回 PHP 8.1。

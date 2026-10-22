@@ -1,0 +1,14 @@
+title: Central Authentication Service
+cas:
+  login_with: Continue as :username
+  login: Log in with CAS
+  logout: Log out
+  switch: Switch Account
+
+reset:
+  title: Reset Password through :cas_login
+  body: You can reset your password by selecting "Forgot Password?" after logging out. Or you may click the button below to verify your identity with :cas_title and reset your password.
+  action: Reset Password
+
+message:
+  single_logout: You've logged out from :cas_title. Please log in again

@@ -1,0 +1,20 @@
+{
+  "name": "auth-cas",
+  "title": "AuthCAS::general.title",
+  "version": "0.2.3-ysumc.1",
+  "description": "AuthCAS::general.description",
+  "author": "a1375625918",
+  "url": "",
+  "namespace": "AuthCAS",
+  "require": {
+    "blessing-skin-server": "^6"
+  },
+  "enchants": {
+    "config": "Configuration",
+    "icon": {
+      "fa": "sign-in-alt",
+      "faType": "fas",
+      "bg": "primary"
+    }
+  }
+}

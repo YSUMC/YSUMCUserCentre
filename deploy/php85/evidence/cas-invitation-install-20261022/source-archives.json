@@ -1,0 +1,12 @@
+[
+  {
+    "plugin": "auth-cas",
+    "archive": "bs-plugin-auth-cas-main-0.2.2.zip",
+    "sha256": "b23f781f1f5deabe9611effd9a7f908d1f23adbcdcce28a0a2ca54870c7ef1ef"
+  },
+  {
+    "plugin": "invitation-codes",
+    "archive": "1760595431-invitation-codes.zip",
+    "sha256": "94602cd1fc2d0a0947dcf3731288b549e0f61fef8c77b9dec4f67432c542450f"
+  }
+]

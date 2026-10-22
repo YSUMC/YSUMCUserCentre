@@ -1,0 +1,4 @@
+title: CAS Login Configuration
+cas:
+  title: CAS Display Name
+  login: CAS Login Option Name

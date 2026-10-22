@@ -1,0 +1,14 @@
+title: 统一身份认证服务
+cas:
+  login_with: 以 :username 的身份继续
+  login: 统一身份认证登录
+  logout: 退出
+  switch: 切换账号
+
+reset:
+  title: 使用 :cas_login 重置密码
+  body: 除了登出后选择“忘记密码”，您也可以点击下方按钮，通过 :cas_title 验证身份并重置密码。
+  action: 重置密码
+
+message:
+  single_logout: 您已从 :cas_title 注销，请重新登录
