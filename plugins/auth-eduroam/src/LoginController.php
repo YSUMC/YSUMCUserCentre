@@ -11,6 +11,7 @@ use App\Events;
 use Carbon\Carbon;
 use Illuminate\Routing\Controller;
 use Blessing\Filter;
+use Blessing\Rejection;
 use Vectorface\Whip\Whip;
 use App\Rules\Captcha;
 use Session;
@@ -47,7 +48,7 @@ class LoginController extends Controller
             'identification' => 'required|string',
             'password' => 'required|string',
         ]);
-        $identification = $data['identification'];
+        $identification = trim($data['identification']);
         $password = $data['password'];
 
         $can = $filter->apply('can_login', null, [$identification, $password]);
@@ -68,9 +69,18 @@ class LoginController extends Controller
             $request->validate(['captcha' => ['required', $captcha]]);
         }
 
-        if (null !== env('EDUROAM_HOST')) {
-            $emailForAuthentication = $identification . '@' . env('EDUROAM_HOST');
-            $emailForDatabase = $identification . '@' . (null !== env('EDUROAM_STORE_HOST') ? env('EDUROAM_HOST') : env('EDUROAM_HOST'));
+        $host = strtolower(trim((string) config('auth-eduroam.host')));
+        $storeHost = strtolower(trim((string) config('auth-eduroam.store_host'))) ?: $host;
+        if ($host !== '') {
+            if (str_contains($identification, '@')) {
+                $parts = explode('@', $identification);
+                if (count($parts) !== 2 || $parts[0] === '' || !in_array(strtolower($parts[1]), [$host, $storeHost], true)) {
+                    return json(trans('AuthEduroam::auth.eduroam.error.credential'), 1);
+                }
+                $identification = $parts[0];
+            }
+            $emailForAuthentication = $identification.'@'.$host;
+            $emailForDatabase = $identification.'@'.$storeHost;
         } else {
             $emailForAuthentication = $identification;
             $emailForDatabase = $identification;
@@ -85,6 +95,10 @@ class LoginController extends Controller
 
             // 认证成功，检查用户是否存在
             $user = User::where('email', $emailForDatabase)->first();
+            // Reuse accounts stored under the authentication domain by older releases.
+            if (!$user && $emailForDatabase !== $emailForAuthentication) {
+                $user = User::where('email', $emailForAuthentication)->first();
+            }
             if (!$user) {
                 // 用户不存在，创建新用户
                 $user = new User();

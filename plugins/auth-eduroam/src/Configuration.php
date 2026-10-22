@@ -11,26 +11,26 @@ class Configuration
     {
         $info = null;
         $hosts = [
-            'host' => env('EDUROAM_HOST'),
-            'store_host' => env('EDUROAM_STORE_HOST'),
+            'host' => config('auth-eduroam.host'),
+            'store_host' => config('auth-eduroam.store_host'),
             'username' => trans('AuthEduroam::auth.eduroam.username'),
         ];
-        if (env('EDUROAM_HOST')) {
-            if (env('EDUROAM_STORE_HOST')) {
+        if (config('auth-eduroam.host')) {
+            if (config('auth-eduroam.store_host')) {
                 $info = trans('AuthEduroam::config.host.set_with_store_host', $hosts);
             } else {
                 $info = trans('AuthEduroam::config.host.set', $hosts);
             }
         } else {
             $info = trans('AuthEduroam::config.host.unset');
-            if(env('EDUROAM_STORE_HOST')){
+            if(config('auth-eduroam.store_host')){
                 $info = $info . trans('AuthEduroam::config.only_store_host');
             }
         }
         return view('AuthEduroam::config', [
             'info' => $info,
-            'host' => (null !== env('EDUROAM_HOST')) ? env('EDUROAM_HOST') : trans('AuthEduroam::config.unset'),
-            'store_host' => (null !== env('EDUROAM_STORE_HOST')) ? env('EDUROAM_STORE_HOST') : trans('AuthEduroam::config.unset'),
+            'host' => config('auth-eduroam.host') ?: trans('AuthEduroam::config.unset'),
+            'store_host' => config('auth-eduroam.store_host') ?: trans('AuthEduroam::config.unset'),
         ]);
     }
 }

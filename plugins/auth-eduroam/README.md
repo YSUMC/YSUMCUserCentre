@@ -19,6 +19,8 @@
 
 在 .env 文件中设置环境变量。
 
+PHP 8.5 / Laravel 13 适配版通过站点的 `config/auth-eduroam.php` 读取配置。修改 `.env` 后执行 `php artisan config:cache`；控制器和设置页在配置缓存开启时也可读取两项域名。认证使用 `EDUROAM_HOST`，新账号保存使用 `EDUROAM_STORE_HOST`（未配置时回退到认证域名）。旧版误存于认证域名的账号继续复用，不自动修改邮箱或重建角色。
+
 `EDUROAM_HOST` : 添加在用户名后的 Eduroam 域名。
 
 `EDUROAM_STORE_HOST` : 替换 `EDUROAM_HOST` 并存储在数据库中的电子邮箱域名。

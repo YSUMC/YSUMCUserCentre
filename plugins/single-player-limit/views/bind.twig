@@ -1,0 +1,25 @@
+{% extends 'auth.base' %}
+
+{% block title %}{{ trans('SinglePlayerLimit::bind.title') }}{% endblock %}
+
+{% block content %}
+  <p class="login-box-msg">
+    <b>{{ trans('SinglePlayerLimit::bind.title') }}</b>
+  </p>
+  <form id="bind-player-form" method="post" action="{{ url('user/player/bind') }}" data-success-url="{{ url('user') }}">
+    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+    {% if players|length > 0 %}
+      <p>{{ trans('SinglePlayerLimit::front-end.bindExistedPlayer') }}</p>
+      {% for player in players %}
+        <label class="d-block mb-2">
+          <input type="radio" name="player" value="{{ player.name }}" required class="mr-2">{{ player.name }}
+        </label>
+      {% endfor %}
+    {% else %}
+      <p>{{ trans('SinglePlayerLimit::front-end.bindNewPlayer') }}</p>
+      <input type="text" class="form-control mb-3" name="player" required autocomplete="off">
+    {% endif %}
+    <div class="alert alert-danger" data-bind-error hidden></div>
+    <button class="btn btn-primary btn-block" type="submit">{{ trans('general.submit') }}</button>
+  </form>
+{% endblock %}
