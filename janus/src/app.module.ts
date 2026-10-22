@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CustomPrismaModule } from 'nestjs-prisma';
 import { EXTENDED_PRISMA_SERVICE, getExtendedPrismaClient } from './extended-prisma-client';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OIDCProviderService } from './oidc-provider.service';
@@ -12,19 +11,19 @@ import { validate } from './env-validation';
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true, validate: validate }),
-        CustomPrismaModule.forRootAsync({
-            name: EXTENDED_PRISMA_SERVICE,
-            useFactory: (config: ConfigService) => {
-                return getExtendedPrismaClient(
-                    config.get<string>('BS_SITE_URL')!,
-                    config.get<string>('DB_CONNECTION_STRING')!,
-                );
-            },
-            inject: [ConfigService],
-        }),
     ],
     controllers: [AppController],
     providers: [
+        {
+            provide: EXTENDED_PRISMA_SERVICE,
+            useFactory: (config: ConfigService) => ({
+                client: getExtendedPrismaClient(
+                    config.get<string>('BS_SITE_URL')!,
+                    config.get<string>('DB_CONNECTION_STRING')!,
+                ),
+            }),
+            inject: [ConfigService],
+        },
         AppService,
         {
             provide: "JWK",

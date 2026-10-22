@@ -2,8 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import * as oidc from 'oidc-provider';
 import { BS_RESOURCE_INDICATOR, OIDCProviderService } from './oidc-provider.service';
 import { Request, Response } from "express";
-import { CustomPrismaService } from 'nestjs-prisma';
-import { EXTENDED_PRISMA_SERVICE, ExtendedPrismaClient } from './extended-prisma-client';
+import { EXTENDED_PRISMA_SERVICE, PrismaStore } from './extended-prisma-client';
 import { getDateWithTimezoneOffset } from './helper';
 import { CodeIdToUUID, PassportAuthCode, User } from '@prisma/client';
 import { YggCScopes } from './blessing.types';
@@ -16,7 +15,7 @@ export class AppService {
     private readonly siteUrl: string;
 
     constructor(
-        @Inject(EXTENDED_PRISMA_SERVICE) private readonly prisma: CustomPrismaService<ExtendedPrismaClient>,
+        @Inject(EXTENDED_PRISMA_SERVICE) private readonly prisma: PrismaStore,
         private readonly oidcProvider: OIDCProviderService,
     ) {
         this.provider = this.oidcProvider.provider;

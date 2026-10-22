@@ -75,10 +75,14 @@ def populate(target, source, production=False):
         if (source/rel).exists():
             (target/rel).parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(source/rel,target/rel)
-    # Dependencies are copied only from the Linux tree with the same lock.
-    dependencies = TEST if production else source
-    assert digest(dependencies/'janus/package-lock.json') == digest(target/'janus/package-lock.json')
-    shutil.copytree(dependencies/'janus/node_modules',target/'janus/node_modules',symlinks=True)
+    # Production receives the already built, tested and pruned Linux tree.
+    # Candidates install fresh from the lock, never from the old preview's lock.
+    if production:
+        assert digest(TEST/'janus/package-lock.json') == digest(target/'janus/package-lock.json')
+        for p in (target/'janus/src').rglob('*.ts'):
+            assert digest(p) == digest(TEST/p.relative_to(target))
+        shutil.copytree(TEST/'janus/node_modules',target/'janus/node_modules',symlinks=True)
+        shutil.copytree(TEST/'janus/dist',target/'janus/dist',symlinks=True)
     if (source/'public/.user.ini').exists():
         text = (source/'public/.user.ini').read_text().replace(str(source),str(target))
         (target/'public/.user.ini').write_text(text)
@@ -108,9 +112,16 @@ def candidate():
         log('candidate-'+suite,[PHP,'-c',INI,'vendor/bin/phpunit','-c','phpunit.'+suite+'.xml'],TEST)
     log('candidate-launcher',[PHP,'-c',INI,'tests/launcher-contract.php'],TEST)
     log('candidate-interop-ui',[NODE,'--test','tests/interop-publications.test.cjs'],TEST)
-    log('candidate-janus-build',[NODE,'node_modules/typescript/bin/tsc','-p','tsconfig.build.json','--incremental','false'],TEST/'janus')
+    node_env=os.environ.copy()
+    node_env['PATH']='/www/server/nodejs/v26.12.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    npm='/www/server/nodejs/v26.12.1/lib/node_modules/npm/bin/npm-cli.js'
+    log('candidate-janus-ci',[NODE,npm,'ci','--include=dev','--ignore-scripts','--no-audit','--registry=https://registry.npmjs.org'],TEST/'janus',node_env)
+    log('candidate-janus-generate',[NODE,'node_modules/prisma/build/index.js','generate'],TEST/'janus',node_env)
+    log('candidate-janus-build',[NODE,'node_modules/typescript/bin/tsc','-p','tsconfig.build.json','--incremental','false'],TEST/'janus',node_env)
     tests = sorted((TEST/'janus/test').glob('*.test.cjs'))
     log('candidate-janus-tests',[NODE,'--test',*tests],TEST/'janus')
+    log('candidate-janus-prune',[NODE,npm,'prune','--omit=dev','--ignore-scripts','--no-audit','--registry=https://registry.npmjs.org'],TEST/'janus',node_env)
+    log('candidate-janus-audit',[NODE,npm,'audit','--omit=dev','--json','--registry=https://registry.npmjs.org'],TEST/'janus',node_env)
     (STATE/'candidate-passed.json').write_text(json.dumps({'php':'8.5.12','node':'26.12.1','source':json.loads((STATE/'source.json').read_text())},indent=2))
     print('Candidate passed; production still stopped.')
 
@@ -155,7 +166,7 @@ def stage():
         run(['chown','root:www',NEW/'janus'/rel])
     log('production-composer',[PHP,'-c',INI,COMPOSER,'install','--no-dev','--no-interaction','--prefer-dist','--optimize-autoloader','--no-scripts'],NEW)
     log('production-platform',[PHP,'-c',INI,COMPOSER,'check-platform-reqs','--no-dev'],NEW)
-    log('production-janus-build',[NODE,'node_modules/typescript/bin/tsc','-p','tsconfig.build.json','--incremental','false'],NEW/'janus')
+    log('production-janus-runtime',[NODE,'-e',"require('./dist/app.module.js')"],NEW/'janus')
     run(['chown','-R','root:www',NEW/'janus/dist'])
     run(['chmod','-R','g+rX',NEW/'janus/dist'])
     # Bounded verifier scripts retain their checks but use this release's paths.

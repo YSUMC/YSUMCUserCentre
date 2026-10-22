@@ -50,4 +50,5 @@ export function getExtendedPrismaClient(siteUrl: string, datasourceUrl: string) 
 }
 
 export type ExtendedPrismaClient = ReturnType<typeof getExtendedPrismaClient>;
+export interface PrismaStore { client: ExtendedPrismaClient; }
 export const EXTENDED_PRISMA_SERVICE = 'EXTENDED_PRISMA_SERVICE';

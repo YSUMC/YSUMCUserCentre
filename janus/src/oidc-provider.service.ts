@@ -1,13 +1,12 @@
 import * as oidc from 'oidc-provider';
 import { OIDCAdapter } from './oidc-adapter';
-import { EXTENDED_PRISMA_SERVICE, ExtendedPrismaClient } from './extended-prisma-client';
+import { EXTENDED_PRISMA_SERVICE, PrismaStore } from './extended-prisma-client';
 import { JWK } from 'jose';
 import { getDateWithTimezoneOffset } from './helper';
 import { ConfigService } from '@nestjs/config';
 import { UserInfo, YggCClaims, YggCScopes, YggdrasilProfile } from './blessing.types';
 import { CodeIdToUUID, PassportAccessToken, Player, UUID } from '@prisma/client';
 import { Inject, Injectable } from '@nestjs/common';
-import { CustomPrismaService } from 'nestjs-prisma';
 
 export const BS_RESOURCE_INDICATOR: string = "https://github.com/bs-community/blessing-skin-server";
 export const ACCESS_TOKEN_NAME: string = "Yggdrasil Connect";
@@ -140,7 +139,7 @@ export class OIDCProviderService {
 
     constructor(
         private readonly config: ConfigService,
-        @Inject(EXTENDED_PRISMA_SERVICE) private readonly prisma: CustomPrismaService<ExtendedPrismaClient>,
+        @Inject(EXTENDED_PRISMA_SERVICE) private readonly prisma: PrismaStore,
         @Inject("JWK") private readonly jwk: JWK,
     ) {
         const siteUrl: string = this.config.get<string>("BS_SITE_URL")!;
