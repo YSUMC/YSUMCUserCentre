@@ -87,7 +87,6 @@ export class AppService {
         const user: User | null = await this.prisma.client.user.findFirst({
             where: {
                 uid: Number(authCode?.user_id),
-                verified: true,
                 permission: {
                     not: -1
                 }
@@ -99,6 +98,13 @@ export class AppService {
                 error: "invalid_grant",
                 error_description: "Invalid or expired code"
             });
+        }
+
+        if (!user.verified && await this.oidcProvider.requiresEmailVerification()) {
+            return this.provider.interactionFinished(req, res, {
+                error: 'access_denied',
+                error_description: 'Email verification required',
+            }, { mergeWithLastSubmission: false });
         }
 
         let approved: unknown;

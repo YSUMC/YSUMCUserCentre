@@ -111,6 +111,7 @@ export class OIDCProviderService {
     async userCodeInputSource(ctx: oidc.KoaContextWithOIDC, form: String, out: any, err: any) {
         let msg: string;
         if (err && (err.userCode || err.name === 'NoCodeError')) msg = '您输入的代码不正确，请重试';
+        else if (err && (err.error_detail === 'Email verification required' || out?.error_description === 'Email verification required')) msg = '本站要求验证邮箱，请先在皮肤站完成邮箱验证，再返回启动器重新发起登录。';
         else if (err && err.name === 'AbortedError') msg = '登录请求被中断：' + JSON.stringify(out);
         else if (err) msg = '处理请求时发生错误：' + JSON.stringify(out);
         else msg = '请输入您设备上显示的代码';
@@ -410,14 +411,13 @@ export class OIDCProviderService {
         const user = await this.prisma.client.user.findFirst({
             where: {
                 uid: Number(authCode.user_id),
-                verified: true,
                 permission: {
                     not: -1
                 }
             }
         });
 
-        if (!user) {
+        if (!user || (!user.verified && await this.requiresEmailVerification())) {
             return undefined;
         }
 
@@ -507,6 +507,13 @@ export class OIDCProviderService {
                 update: {}
             });
         }
+    }
+
+    async requiresEmailVerification(): Promise<boolean> {
+        const value = await this.getBlessingOption('require_verification', 'false');
+        // Match Option::get() plus PHP truthiness, including legacy "0" values.
+        // Read on each authorization so admin policy changes take effect immediately.
+        return !['', '0', 'false', '(false)', 'null', '(null)'].includes(value.toLowerCase());
     }
 
     async getBlessingOption(name: string): Promise<string | null>;
