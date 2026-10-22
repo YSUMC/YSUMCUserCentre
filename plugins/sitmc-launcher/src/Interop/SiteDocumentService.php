@@ -19,7 +19,7 @@ final class SiteDocumentService
 
     /**
      * The canonical site domain: the configured host wins, otherwise the host
-     * of the current request. Only the host is kept — never a scheme or path.
+     * of APP_URL. Only the host is kept — never a scheme or path.
      */
     public function domain(?string $requestRoot = null): string
     {

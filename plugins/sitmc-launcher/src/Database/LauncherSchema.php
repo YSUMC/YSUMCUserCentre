@@ -3,6 +3,7 @@
 namespace SITMinecraft\Launcher\Database;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -49,6 +50,29 @@ final class LauncherSchema
         if (self::$installed && Schema::hasTable(self::INSTANCES)) {
             return;
         }
+
+        // MySQL DDL commits implicitly, so a transaction cannot serialize an
+        // upgrade across concurrent FPM workers. Keep the advisory lock on the
+        // same connection for the entire additive migration.
+        $connection = DB::connection();
+        $lock = null;
+        if (in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $lock = 'launcher-schema-'.substr(hash('sha256', $connection->getDatabaseName().$connection->getTablePrefix()), 0, 40);
+            if ((int) $connection->selectOne('SELECT GET_LOCK(?, 30) AS acquired', [$lock])->acquired !== 1) {
+                throw new \RuntimeException('Launcher schema upgrade is busy; retry after it completes.');
+            }
+        }
+        try {
+            self::installTables();
+        } finally {
+            if ($lock !== null) {
+                $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$lock]);
+            }
+        }
+    }
+
+    private static function installTables(): void
+    {
 
         if (! Schema::hasTable(self::INSTANCES)) {
             Schema::create(self::INSTANCES, static function (Blueprint $table): void {

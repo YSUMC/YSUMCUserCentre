@@ -343,6 +343,8 @@
       var boxes = Array.prototype.slice.call(document.querySelectorAll('.interop-publish-box'));
       var status = document.getElementById('interop-publish-status');
       var timer = null;
+      var inFlight = false;
+      var pending = false;
       var messages = {
         saving: '{{ trans('sitmc-launcher::launcher.interop.publications.saving')|e('js') }}',
         saved: '{{ trans('sitmc-launcher::launcher.interop.publications.saved')|e('js') }}',
@@ -362,6 +364,12 @@
         if (!form) {
           return;
         }
+        pending = true;
+        if (inFlight) {
+          return;
+        }
+        pending = false;
+        inFlight = true;
 
         setStatus(messages.saving, 'text-muted');
 
@@ -382,9 +390,12 @@
             throw new Error('save failed');
           }
 
-          setStatus(messages.saved, 'text-success');
+          if (!pending) setStatus(messages.saved, 'text-success');
         }).catch(function () {
           setStatus(messages.failed, 'text-danger');
+        }).finally(function () {
+          inFlight = false;
+          if (pending) save();
         });
       }
 
@@ -397,6 +408,7 @@
           }
 
           clearTimeout(timer);
+          pending = true;
           timer = setTimeout(save, 250);
         });
       });
