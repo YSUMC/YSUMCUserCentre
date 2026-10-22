@@ -97,6 +97,28 @@ final class InteropTest extends \Tests\Security\TestCase
         $this->assertSame(0, DB::table(LauncherSchema::INTEROP_ENDPOINTS)->count());
     }
 
+    public function testPackResponseStreamsUnderSymfony8ResponseContract(): void
+    {
+        $file = tempnam(storage_path(), 'interop-stream-');
+        $bytes = "PK\x03\x04".str_repeat('fixture', 40000);
+        file_put_contents($file, $bytes);
+        try {
+            $response = new \SITMinecraft\Launcher\Http\PackStreamResponse($file, 'test.mrpack');
+            ob_start();
+            try {
+                $returned = $response->sendContent();
+                $streamed = ob_get_contents();
+            } finally {
+                ob_end_clean();
+            }
+            $this->assertSame($response, $returned);
+            $this->assertSame($bytes, $streamed);
+            $this->assertSame((string) strlen($bytes), $response->headers->get('Content-Length'));
+        } finally {
+            unlink($file);
+        }
+    }
+
     public function testOnlySelectedCurrentRevisionIsSerializedWithBothHashes(): void
     {
         $this->instance(); $this->instance('private');

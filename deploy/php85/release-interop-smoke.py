@@ -25,7 +25,8 @@ def skin_checks(ctx):
     player=fixture['player_name']; tid=None
     try:
         check(request('GET','/api/launcher/skins',params={'player':player}).status_code==401,'Launcher skins require a bearer token')
-        check(request('GET','/api/launcher/skins',params={'player':player},headers=headers).status_code==200,'Janus token reads owned launcher profile')
+        profile=request('GET','/api/launcher/skins',params={'player':player},headers=headers)
+        check(profile.status_code==200,'Janus token reads owned launcher profile (HTTP '+str(profile.status_code)+')')
         upload=request('POST','/api/launcher/skins',params={'player':player,'type':'steve','name':'Release verification','public':'false'},data=png,headers=headers|{'Content-Type':'image/png'})
         check(upload.status_code==200 and upload.json().get('created') is True,'Launcher raw PNG upload uses core storage and policy')
         tid=upload.json()['texture']['tid']
@@ -98,7 +99,7 @@ try:
     entry=next(p for p in document['packs'] if p['id']==instance)
     check(entry['revision']==2 and entry['artifact']['sha1']==hashlib.sha1(data).hexdigest() and entry['artifact']['sha512']==hashlib.sha512(data).hexdigest(),'Published artifact carries matching hashes and revision')
     artifact=anon.get(entry['artifact']['url'],timeout=20)
-    check(artifact.status_code==200 and artifact.content==data,'Pack download streams the exact uploaded bytes')
+    check(artifact.status_code==200 and artifact.content==data,'Pack download streams the exact uploaded bytes (HTTP '+str(artifact.status_code)+')')
     legacy=anon.get(base+'/api/launcher/manifest',timeout=20).json()
     check(any(p['id']==instance for p in legacy['instances']),'Legacy launcher receives the compatible published mrpack')
     selection(prior)

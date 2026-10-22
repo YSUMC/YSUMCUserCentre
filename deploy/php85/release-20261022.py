@@ -200,7 +200,19 @@ def cutover():
     start=original.index(marker);end=original.index('    index index.php;',start)
     public=(original[:start]+original[end:]).replace('root /www/server/stop;', 'root '+str(NEW)+'/public;',1)
     public=public.replace('    location ^~ /.well-known/acme-challenge/', '    location = /.well-known/mc-interop-v1.json {\n        rewrite ^ /index.php last;\n    }\n\n    location ^~ /.well-known/acme-challenge/')
-    gate='    if ($server_addr != 127.0.0.1) {\n        rewrite ^/(?!bt-stop\\.html$).* /bt-stop.html last;\n    }\n    location = /bt-stop.html { root /www/server/stop; internal; }\n'
+    # Launcher verifies its token through this site's HTTPS userinfo endpoint.
+    # Permit only those server-origin callbacks in addition to loopback tests;
+    # a client-controlled HTTP header cannot pass this TCP-source check.
+    gate='''    set $release_allowed 0;
+    if ($server_addr = 127.0.0.1) { set $release_allowed 1; }
+    set $release_callback "$remote_addr:$request_uri";
+    if ($release_callback = "103.39.66.86:/api/janus/userinfo") { set $release_allowed 1; }
+    if ($release_callback = "103.39.66.86:/yggc/userinfo") { set $release_allowed 1; }
+    if ($release_allowed = 0) {
+        rewrite ^/(?!bt-stop\\.html$).* /bt-stop.html last;
+    }
+    location = /bt-stop.html { root /www/server/stop; internal; }
+'''
     private=public.replace('    index index.php;',gate+'    index index.php;')
     (BACK/'nginx-public.conf').write_text(public)
     (BACK/'nginx-private.conf').write_text(private)
@@ -217,6 +229,7 @@ def cutover():
 
 def open_site():
     assert (BACK/'fixture-cleanup.json').exists() and (BACK/'interop-http-passed.json').exists()
+    assert (BACK/'fixture-cleanup.json').stat().st_mtime > (BACK/'production-fixture.json').stat().st_mtime
     assert json.loads((BACK/'http-smoke-result.json').read_text())['passed'] >= 98
     assert VHOST.read_bytes()==(BACK/'nginx-private.conf').read_bytes()
     protected=json.loads((BACK/'protected-files.json').read_text())
