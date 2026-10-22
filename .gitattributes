@@ -1,0 +1,4 @@
+# Preserve upstream repair-kit bytes and its SHA256 manifest on Windows.
+deploy/php81-repair-kit/* -text
+# Unified patch context intentionally includes whitespace from the upstream source.
+deploy/php81-repair-kit/security.patch -whitespace

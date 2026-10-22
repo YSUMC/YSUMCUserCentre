@@ -112,8 +112,15 @@ final class LauncherRepository
 
     public function deleteInstance(string $instanceId): void
     {
-        DB::table(LauncherSchema::PACKS)->where('instance_id', $instanceId)->delete();
-        DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->delete();
+        DB::transaction(function () use ($instanceId): void {
+            DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            // Do not let a new instance with a reused ID inherit an old public
+            // selection or endpoint configuration.
+            foreach ([LauncherSchema::INTEROP_SERVERS, LauncherSchema::INTEROP_ENDPOINTS,
+                LauncherSchema::PACKS, LauncherSchema::INSTANCES] as $table) {
+                DB::table($table)->where('instance_id', $instanceId)->delete();
+            }
+        });
     }
 
     /**

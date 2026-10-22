@@ -85,6 +85,18 @@ final class InteropTest extends \Tests\Security\TestCase
         $this->assertSame('YSUMC Test', $data['site']['name']);
     }
 
+    public function testRecreatedInstanceDoesNotInheritDeletedPublication(): void
+    {
+        $this->instance();
+        $this->repository->savePublications(['survival']);
+        DB::table(LauncherSchema::INTEROP_ENDPOINTS)->insert(['instance_id' => 'survival', 'address' => 'play.example.com']);
+        (new LauncherRepository)->deleteInstance('survival');
+        $this->instance();
+        $this->assertSame([], json_decode($this->response()->getContent(), true)['packs']);
+        $this->assertSame(0, DB::table(LauncherSchema::INTEROP_SERVERS)->count());
+        $this->assertSame(0, DB::table(LauncherSchema::INTEROP_ENDPOINTS)->count());
+    }
+
     public function testOnlySelectedCurrentRevisionIsSerializedWithBothHashes(): void
     {
         $this->instance(); $this->instance('private');

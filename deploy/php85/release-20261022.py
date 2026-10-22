@@ -69,6 +69,7 @@ def populate(target, source, production=False):
     else:
         shutil.copytree(source/'storage',target/'storage',symlinks=False)
     (target/'bootstrap/cache').mkdir(parents=True,exist_ok=True)
+    (target/'public/lang').mkdir(parents=True,exist_ok=True)
     shutil.copytree(source/'vendor',target/'vendor',symlinks=False)
     for rel in ['janus/.env','janus/oauth-private.key','janus/prisma/schema.prisma']:
         if (source/rel).exists():
@@ -85,8 +86,9 @@ def populate(target, source, production=False):
     run(['chown','-R','root:www',target])
     for rel in ['.env','janus/.env','janus/oauth-private.key']:
         if (target/rel).exists(): (target/rel).chmod(0o640)
-    for folder in ['bootstrap/cache','plugins'] + ([] if production else ['storage']):
+    for folder in ['bootstrap/cache','plugins','public/lang'] + ([] if production else ['storage']):
         run(['chown','-R','www:www',target/folder])
+        (target/folder).chmod(0o775)
     return target
 
 def candidate():
@@ -154,6 +156,8 @@ def stage():
     log('production-composer',[PHP,'-c',INI,COMPOSER,'install','--no-dev','--no-interaction','--prefer-dist','--optimize-autoloader','--no-scripts'],NEW)
     log('production-platform',[PHP,'-c',INI,COMPOSER,'check-platform-reqs','--no-dev'],NEW)
     log('production-janus-build',[NODE,'node_modules/typescript/bin/tsc','-p','tsconfig.build.json','--incremental','false'],NEW/'janus')
+    run(['chown','-R','root:www',NEW/'janus/dist'])
+    run(['chmod','-R','g+rX',NEW/'janus/dist'])
     # Bounded verifier scripts retain their checks but use this release's paths.
     previous='/www/server/php-compat-assessments/20261022-migration/production-cutover-20261022'
     for file in ['production-fixture.php','production-http-smoke.py']:
@@ -183,7 +187,8 @@ def cutover():
     fpm=Path('/opt/ysumc/php-8.5.12/etc/php-fpm.conf')
     fpm.write_text((BACK/'php-fpm.conf').read_text().replace(str(OLD),str(NEW)))
     unit=Path('/etc/systemd/system/ysumc-php85-fpm.service')
-    unit.write_text((BACK/'php.service').read_text().replace(str(OLD),str(NEW)))
+    unit_text=(BACK/'php.service').read_text().replace(str(OLD),str(NEW))
+    unit.write_text(unit_text.replace('NoNewPrivileges=true', 'ReadWritePaths='+str(NEW/'public/lang')+'\nNoNewPrivileges=true'))
     Path('/etc/systemd/system/ysumc-janus.service.d/30-release.conf').write_text('[Service]\nWorkingDirectory='+str(NEW/'janus')+'\n')
     for command in ['package:discover','config:cache','view:cache']:
         log('production-'+command.replace(':','-'),['runuser','-u','www','--',PHP,'-c',INI,'artisan',command],NEW)
