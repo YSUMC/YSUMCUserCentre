@@ -24,7 +24,7 @@ final class PackStreamResponse extends Response
         $this->path = $path;
 
         parent::__construct('', 200, [
-            'Content-Type' => 'application/zip',
+            'Content-Type' => str_ends_with($downloadName, '.bin') ? 'application/octet-stream' : 'application/zip',
             'Content-Length' => (string) filesize($path),
             'Content-Disposition' => 'attachment; filename="'.addslashes($downloadName).'"',
             'X-Content-Type-Options' => 'nosniff',

@@ -28,7 +28,10 @@ class DetectLanguagePrefer
 
         /** @var Response */
         $response = $next($request);
-        $response->headers->setCookie(cookie('locale', $locale, 120));
+        // Public catalog responses are shared cache entries, so do not attach a visitor cookie.
+        if (! $response->headers->hasCacheControlDirective('public')) {
+            $response->headers->setCookie(cookie('locale', $locale, 120));
+        }
 
         return $response;
     }
