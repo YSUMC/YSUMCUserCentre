@@ -1,0 +1,69 @@
+{
+  "checked_utc": "2026-10-22T10:58:33.713905+00:00",
+  "application_commit": "d59449a",
+  "active_root": "/www/wwwroot/ysumcusercentre",
+  "php": "8.5.12",
+  "node": "26.12.1",
+  "regression_tests_run": false,
+  "campus_authentication_attempted": false,
+  "services": {
+    "ysumc-php85-fpm.service": {
+      "NRestarts": "0",
+      "WorkingDirectory": "",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "ysumc-janus.service": {
+      "NRestarts": "0",
+      "WorkingDirectory": "/www/wwwroot/ysumcusercentre/janus",
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  },
+  "entries": {
+    "/auth/login": 200,
+    "/auth/eduroam/login": 200,
+    "/api/janus/.well-known/openid-configuration": 200
+  },
+  "panel": {
+    "path": "/www/wwwroot/ysumcusercentre",
+    "status": "1"
+  },
+  "plugins": {
+    "auth-eduroam": "0.1.3",
+    "restricted-email-domains": "0.3.1",
+    "single-player-limit": "3.0.5"
+  },
+  "eduroam_cached_config": {
+    "host": "ysu.edu.cn",
+    "store_host": "mail.ysu.edu.cn"
+  },
+  "interop_refresh_cron_count": 1,
+  "cron_active": true,
+  "remaining_version_directories": [
+    "/www/wwwroot/ysumcusercentre"
+  ],
+  "cleanup": {
+    "completed_utc": "2026-10-22T10:56:22.955050+00:00",
+    "removed": [
+      "/www/wwwroot/ysumcusercentre-next",
+      "/www/wwwroot/ysumcusercentre-php85-20261022",
+      "/www/wwwroot/ysumcusercentre-review-20261022",
+      "/www/server/php-compat-assessments/20261022-consolidation/retired-original",
+      "/www/wwwroot/ysumcusercentre/janus/node_modules.pre-audit",
+      "/www/wwwroot/ysumcusercentre/janus/dist.pre-audit",
+      "/www/wwwroot/ysumcusercentre/janus/dist.email-policy-previous-1c50557"
+    ],
+    "remaining": [
+      "/www/wwwroot/ysumcusercentre"
+    ],
+    "storage_preserved": true,
+    "database_preserved": true,
+    "backup_checksums_verified": true
+  },
+  "database_running": true,
+  "database_health": "healthy",
+  "database_mount_matches_directory": true,
+  "storage_is_physical_directory": true,
+  "open_basedir_uses_canonical_path": true
+}

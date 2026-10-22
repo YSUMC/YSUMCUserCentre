@@ -1,8 +1,32 @@
 # 审查、合并与生产发布（2026-10-22）
 
-本次按用户明确授权完成部署并恢复 `https://skin.ysumc.net` 访问，替代此前停站限制。实际开发分支为 `YSUMC-dev`，已推送至 `YSUMC/YSUMCUserCentre`。应用版本为 `8d1f3695136705a0e3b82381d87013e09ca33612`；后续提交只补充本记录和脱敏证据。
+本次按用户明确授权完成部署并恢复 `https://skin.ysumc.net` 访问，替代此前停站限制。实际开发分支为 `YSUMC-dev`。首次发布的应用版本为 `8d1f3695136705a0e3b82381d87013e09ca33612`；后续功能和部署变更见下节。
 
-## 运行状态
+## 当前生产状态：插件兼容与目录归并
+
+2026-10-22 后续部署应用提交 `d59449a`，基于此前 Janus 邮箱验证策略修复 `1c50557`，在独立分支 `codex/plugin-compat-eduroam-cleanup` 完成修改。
+
+- 邮箱域名限制 `restricted-email-domains` 更新为 **0.3.1**。设置页改用服务端模板和原生表单，移除运行时对旧前端框架全局变量的依赖；补充域名格式校验、大小写归一化、重复项处理与空配置兼容。
+- 实际安装的另一个限制插件为 **单角色限制** `single-player-limit`，更新为 **3.0.5**。角色绑定页面适配当前前端，并修复空用户处理；绑定时通过事务和正常删除事件清理其他角色。已有多个角色的用户须手动选择保留哪个角色，页面保留删除其他角色的提示；本次部署未替用户绑定或删除角色。
+- EDUROAM 更新为 **0.1.3**。环境变量在 `config/auth-eduroam.php` 中加载，插件运行时通过 `config()` 读取，修复启用 Laravel 配置缓存后 `env()` 不可用的问题。认证域名为 `ysu.edu.cn`，存储域名为 `mail.ysu.edu.cn`；修复存储域名读取错变量的问题，并兼容旧认证域名下的已有账号。
+- **唯一生产目录为 `/www/wwwroot/ysumcusercentre`**。Nginx、PHP-FPM、Janus、宝塔站点和本机入口均已对齐；`public/.user.ini` 的 `open_basedir` 也已修正为该目录。
+- 原 `ysumcusercentre-release-20261022` 重命名为保留目录；旧原始目录及 `ysumcusercentre-next`、`ysumcusercentre-php85-20261022`、`ysumcusercentre-review-20261022` 已删除。Janus 内三份旧构建/依赖备份也已清理。
+- `storage` 现为保留目录内的实体目录；`.runtime/mysql` 保留原数据。移动前后 inode 相同，MariaDB 容器实际挂载与保留目录一致。原 `.env`、Janus 配置与密钥校验未改变。
+- PHP 继续使用 **8.5.12**，Janus 继续使用 Node **26.12.1**。两服务正常运行；每 5 分钟互通刷新任务仍恰好一条，未输出或改动同步 token。
+
+按用户要求，本次**未运行回归测试，未尝试校园账号认证**。仅完成代码语法、部署文件一致性、服务启动和基本入口检查：登录页、EDUROAM 登录入口、Janus OIDC 元数据均返回 HTTP 200；两服务自动重启次数均为 0。脱敏证据见 `evidence/plugin-compat-consolidation-20261022/final-status.json`。后台配置保存、角色绑定和真实校园认证由用户核验。
+
+本次私有备份位于 `/www/server/php-compat-assessments/20261022-consolidation`，不在站点根目录下。包含归并前五个目录的压缩包、SQL 逻辑备份、配置、宝塔元数据及校验清单；清理前已重新校验 SHA-256。目录归并与清理脚本分别为 `consolidate-usercentre.py`、`cleanup-usercentre.py`，绑定本次主机和目录，**不得当作通用发布脚本重复运行**。
+
+回滚本次插件更新和目录归并：
+
+```sh
+bash /www/server/php-compat-assessments/20261022-consolidation/rollback.sh
+```
+
+该回滚从压缩备份恢复旧程序目录，保留当前数据库实体目录、上传文件和会话，恢复本次修改前的插件文件、`.user.ini`、服务和站点路径。它不会导入旧 SQL；回滚本身会重新产生旧版本目录，并短暂停止 PHP-FPM 和 Janus。此次按要求未实际执行回滚演练。下文的发布路径、验证数量和回滚记录均属于**首次发布历史**，不代表本次重新执行。
+
+## 首次发布运行状态
 
 - PHP 官网本次核查最新稳定版为 **8.5.12**（https://www.php.net/downloads.php）。服务器已有此前完整构建的同版本，核验后继续使用，无需重复编译或退回 PHP 8.1。
 - 生产目录：`/www/wwwroot/ysumcusercentre-release-20261022`；共享存储仍在 `/www/wwwroot/ysumcusercentre/storage`。
