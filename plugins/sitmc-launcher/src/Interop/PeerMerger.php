@@ -8,8 +8,8 @@ namespace SITMinecraft\Launcher\Interop;
  *
  * Merging is pure: no I/O. Foreign entries carry
  * `source: {siteId, domain, stale?}`, are validated with the same field rules as
- * local entries, and lose on id collision so a server binding can never point at
- * an ambiguous pack.
+ * local entries, and use their original source site's namespace. Local ids
+ * remain unchanged; duplicate foreign ids are dropped after normalization.
  */
 final class PeerMerger
 {
@@ -80,11 +80,6 @@ final class PeerMerger
                     continue;
                 }
 
-                if (isset($seen[$entry['id']])) {
-                    $this->diagnose('peer-entry-id-collision', $siteId, $entry['id']);
-                    continue;
-                }
-
                 $entry['source'] = $source;
                 if (is_array($item['source'] ?? null)) {
                     $originalId = InteropRules::id($item['source']['siteId'] ?? null);
@@ -96,6 +91,18 @@ final class PeerMerger
                     $entry['source'] = ['siteId' => $originalId, 'domain' => $originalDomain];
                     if (($source['stale'] ?? false) || ($item['source']['stale'] ?? false) === true) $entry['source']['stale'] = true;
                 }
+
+                // Keep forwarded entries in their original namespace instead
+                // of adding another prefix on every hop.
+                if (! str_contains($entry['id'], ':')) {
+                    $entry['id'] = $entry['source']['siteId'].':'.$entry['id'];
+                }
+
+                if (isset($seen[$entry['id']])) {
+                    $this->diagnose('peer-entry-id-collision', $siteId, $entry['id']);
+                    continue;
+                }
+
                 $packs[] = $entry;
                 $seen[$entry['id']] = true;
             }
@@ -122,7 +129,7 @@ final class PeerMerger
      */
     private function entry(array $item, string $siteId): ?array
     {
-        $id = InteropRules::id($item['id'] ?? null);
+        $id = $this->entryId($item);
 
         if ($id === null) {
             $this->diagnose('peer-entry-id-invalid', $siteId);
@@ -225,6 +232,27 @@ final class PeerMerger
         $entry['server'] = $serverEntry;
 
         return $entry;
+    }
+
+    private function entryId(array $item): ?string
+    {
+        $id = InteropRules::id($item['id'] ?? null);
+        if ($id !== null) {
+            return $id;
+        }
+
+        if (! is_string($item['id'] ?? null) || ! is_array($item['source'] ?? null)) {
+            return null;
+        }
+
+        $parts = explode(':', trim($item['id']));
+        if (count($parts) !== 2 || InteropRules::id($parts[0]) !== $parts[0]
+            || InteropRules::id($parts[1]) !== $parts[1]
+            || InteropRules::id($item['source']['siteId'] ?? null) !== $parts[0]) {
+            return null;
+        }
+
+        return $parts[0].':'.$parts[1];
     }
 
     /**

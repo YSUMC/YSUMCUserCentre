@@ -241,16 +241,16 @@ final class InteropTest extends \Tests\Security\TestCase
         }
     }
 
-    public function testMergeRejectsCollisionsAndPreservesOriginalProvenance(): void
+    public function testMergeNamespacesPeersAndPreservesOriginalProvenance(): void
     {
         $this->instance('private', false);
         $this->peer();
-        $foreign = $this->foreign();
+        $foreign = $this->foreign('third:foreign');
         $foreign['source'] = ['siteId' => 'third', 'domain' => 'third.example.com', 'stale' => true];
-        $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', null, InteropRules::encode($this->peerDocument([$this->foreign('private'), $foreign])));
+        $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', null, InteropRules::encode($this->peerDocument([$this->foreign('private'), $foreign, $foreign])));
         $result = $this->documents->document();
-        $this->assertCount(1, $result['document']['packs']);
-        $this->assertSame($foreign['source'], $result['document']['packs'][0]['source']);
+        $this->assertSame(['sitmc:private', 'third:foreign'], array_column($result['document']['packs'], 'id'));
+        $this->assertSame($foreign['source'], $result['document']['packs'][1]['source']);
         $this->assertNotEmpty($result['diagnostics']);
     }
 
