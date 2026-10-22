@@ -1,0 +1,15 @@
+{
+  "checked_utc": "2026-10-22T12:47:27.731439+00:00",
+  "guest_authorization_status": 302,
+  "guest_redirect": "/auth/login",
+  "login_page_status": 200,
+  "authorization_url_preserved": true,
+  "login_prompt_preserved": true,
+  "framework_intended_url_preserved": true,
+  "json_authorization_status": 401,
+  "prompt_none_error": "login_required",
+  "unauthenticated_launcher_api_status": 401,
+  "accounts_created": 0,
+  "grants_approved": 0,
+  "regression_suite_run": false
+}

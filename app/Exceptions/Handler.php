@@ -2,11 +2,13 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laravel\Passport\Exceptions\MissingScopeException;
+use Laravel\Passport\Exceptions\AuthenticationException as PassportAuthenticationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -36,6 +38,24 @@ class Handler extends ExceptionHandler
         }
 
         return parent::render($request, $exception);
+    }
+
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        // Passport prompts for login inside its controller, bypassing our auth
+        // middleware. Laravel 13 needs an explicit browser redirect in this case.
+        if ($exception instanceof PassportAuthenticationException
+            && $request->routeIs('passport.authorizations.authorize')
+            && ! $this->shouldReturnJson($request, $exception)) {
+            $request->session()->put([
+                'last_requested_path' => $request->fullUrl(),
+                'msg' => trans('auth.check.anonymous'),
+            ]);
+
+            return redirect()->guest(route('auth.login'));
+        }
+
+        return parent::unauthenticated($request, $exception);
     }
 
     protected function convertExceptionToArray(Throwable $e)

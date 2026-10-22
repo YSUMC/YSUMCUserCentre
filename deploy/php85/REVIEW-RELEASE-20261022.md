@@ -55,6 +55,16 @@ bash /www/server/php-compat-assessments/20261022-cas-invitation-install/rollback
 
 本次服务配置备份、邀请码快照和结果保存在服务器私有目录 `/www/server/php-compat-assessments/20261022-plugin-assets-permission`；快照包含邀请码，未提交到仓库。仓库只保留脱敏结果 `evidence/plugin-assets-permission-20261022/result.json`。
 
+## 后续修复：未登录时从启动器进入授权页返回 401
+
+线上日志中的 401 来自 `GET /oauth/authorize`。Passport 13 的浏览器授权入口仅使用 Web 会话中间件，在控制器内抛出认证异常来要求登录；这绕过了本站 `Authenticate` 中间件中的登录跳转和 `last_requested_path` 保存逻辑。Laravel 13 对没有提供跳转地址的认证异常返回空的 401，导致未登录用户不能进入登录页，已登录用户不受影响。
+
+`App\Exceptions\Handler` 现在只针对 Passport 浏览器授权入口的认证异常，保存完整原授权 URL，并跳转到 `auth.login`。普通密码登录与 EDUROAM 登录原有的 `last_requested_path` 回跳逻辑会继续该授权请求。JSON 请求保持 401；`prompt=none` 由 Passport 按 OAuth 协议处理，不强行跳转登录。邮箱验证中间件也改为仅检查实际存在的用户，让访客先进入 Passport 的登录流程。
+
+修复已部署，PHP-FPM 已重载。使用独立匿名会话确认：授权入口从空 401 变为 302 `/auth/login`，登录页 200；读取该检查会话确认客户端、回调地址、scope、state、prompt 等参数完整保留，登录提示标记也保持。JSON 授权请求及无令牌的启动器 API 仍为 401，`prompt=none` 仍向有效回调返回 `login_required`。未创建账号、未批准授权、未运行回归套件，真实用户登录后的完整授权流程未代用户操作。
+
+备份与回滚脚本位于 `/www/server/php-compat-assessments/20261022-oauth-guest-login`；回滚命令为 `python3 /www/server/php-compat-assessments/20261022-oauth-guest-login/rollback.py`。脱敏检查结果见 `evidence/oauth-guest-login-20261022/verification.json`。
+
 ## 首次发布运行状态
 
 - PHP 官网本次核查最新稳定版为 **8.5.12**（https://www.php.net/downloads.php）。服务器已有此前完整构建的同版本，核验后继续使用，无需重复编译或退回 PHP 8.1。
