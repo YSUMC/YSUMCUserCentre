@@ -20,6 +20,8 @@ use SITMinecraft\Launcher\Manifest\PackStore;
  */
 final class InstanceController
 {
+    use ScopesDistribution;
+
     public function __construct(
         private LauncherRepository $repository,
         private PackStore $packs,
@@ -27,7 +29,7 @@ final class InstanceController
 
     public function index(Request $request): View
     {
-        $brand = $request->route('distributionBrand', 'ysumc');
+        $brand = $this->distributionBrand($request);
         $builder = new ManifestBuilder($request->root(), $brand === 'mutmc' ? '/api/launcher/mutmc/packs' : '/api/launcher/packs');
 
         $instances = [];
@@ -45,18 +47,22 @@ final class InstanceController
             'limits' => $this->uploadLimits(),
             'manifestPath' => $brand === 'mutmc' ? '/api/launcher/mutmc/manifest' : '/api/launcher/manifest',
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
+        if ($request->query('brand') === 'mutmc' && $this->distributionBrand($request) !== 'mutmc') {
+            return redirect()->route('sitmc-launcher.admin.mutmc.create');
+        }
+
         return view('sitmc-launcher::admin.instance', [
             'instance' => null,
-            'distributionBrand' => $request->query('brand') === 'mutmc' ? 'mutmc' : 'ysumc',
+            'distributionBrand' => $this->distributionBrand($request),
             'packs' => [],
             'limits' => $this->uploadLimits(),
             'status' => null,
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -70,7 +76,7 @@ final class InstanceController
         ]);
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $values['instance_id'])
+            ->route($this->adminRouteName($request, 'edit'), $values['instance_id'])
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.created'));
     }
 
@@ -78,9 +84,7 @@ final class InstanceController
     {
         $row = $this->repository->row($instanceId);
 
-        if ($row === null) {
-            abort(404);
-        }
+        $this->requireDistribution($request, $row);
 
         $builder = new ManifestBuilder($request->root(), $row['distribution_brand'] === 'mutmc' ? '/api/launcher/mutmc/packs' : '/api/launcher/packs');
         $row['problem'] = ManifestRules::publishProblem($row, $builder->packUrlFor($row));
@@ -92,12 +96,12 @@ final class InstanceController
             'packs' => $this->repository->packs($instanceId),
             'limits' => $this->uploadLimits(),
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function update(Request $request, string $instanceId): RedirectResponse
     {
-        $this->requireInstance($instanceId);
+        $this->requireInstance($request, $instanceId);
 
         $values = $this->validated($request, $instanceId);
         $values['updated_at'] = now();
@@ -105,13 +109,13 @@ final class InstanceController
         $this->repository->saveInstance($values);
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $instanceId)
+            ->route($this->adminRouteName($request, 'edit'), $instanceId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.saved'));
     }
 
-    public function destroy(string $instanceId): RedirectResponse
+    public function destroy(Request $request, string $instanceId): RedirectResponse
     {
-        $brand = $this->repository->row($instanceId)['distribution_brand'] ?? 'ysumc';
+        $this->requireInstance($request, $instanceId);
         foreach ($this->repository->packs($instanceId) as $pack) {
             $this->packs->forget($pack['disk_path'] ?? null);
         }
@@ -119,13 +123,13 @@ final class InstanceController
         $this->repository->deleteInstance($instanceId);
 
         return redirect()
-            ->route($brand === 'mutmc' ? 'sitmc-launcher.admin.mutmc' : 'sitmc-launcher.admin.index')
+            ->route($this->adminRouteName($request, 'index'))
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.deleted'));
     }
 
     public function storePack(Request $request, string $instanceId): RedirectResponse
     {
-        $this->requireInstance($instanceId);
+        $this->requireInstance($request, $instanceId);
 
         $request->validate(
             ['pack' => ['required', 'file', 'max:'.$this->maxUploadKilobytes()], 'format' => ['nullable', ($this->repository->row($instanceId)['distribution_brand'] === 'mutmc' ? 'in:mrpack' : 'in:mrpack,multimc,curseforge-zip,server-zip,raw')]],
@@ -164,7 +168,7 @@ final class InstanceController
         }
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $instanceId)
+            ->route($this->adminRouteName($request, 'edit'), $instanceId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.pack-uploaded', [
                 'revision' => $revision,
             ]));
@@ -172,7 +176,7 @@ final class InstanceController
 
     public function storeExternalPack(Request $request, string $instanceId): RedirectResponse
     {
-        $this->requireInstance($instanceId);
+        $this->requireInstance($request, $instanceId);
 
         $values = $request->validate([
             'url' => ['required', 'string', 'max:512'],
@@ -212,15 +216,15 @@ final class InstanceController
         });
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $instanceId)
+            ->route($this->adminRouteName($request, 'edit'), $instanceId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.pack-uploaded', [
                 'revision' => $revision,
             ]));
     }
 
-    public function activatePack(string $instanceId, int $revision): RedirectResponse
+    public function activatePack(Request $request, string $instanceId, int $revision): RedirectResponse
     {
-        $this->requireInstance($instanceId);
+        $this->requireInstance($request, $instanceId);
 
         if ($this->repository->pack($instanceId, $revision) === null) {
             abort(404);
@@ -229,15 +233,15 @@ final class InstanceController
         $revision = $this->repository->republishPack($instanceId, $revision);
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $instanceId)
+            ->route($this->adminRouteName($request, 'edit'), $instanceId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.pack-activated', [
                 'revision' => $revision,
             ]));
     }
 
-    public function destroyPack(string $instanceId, int $revision): RedirectResponse
+    public function destroyPack(Request $request, string $instanceId, int $revision): RedirectResponse
     {
-        $this->requireInstance($instanceId);
+        $this->requireInstance($request, $instanceId);
 
         $pack = $this->repository->pack($instanceId, $revision);
 
@@ -251,13 +255,13 @@ final class InstanceController
         }
 
         return redirect()
-            ->route('sitmc-launcher.admin.edit', $instanceId)
+            ->route($this->adminRouteName($request, 'edit'), $instanceId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.pack-deleted'));
     }
 
     public function saveSettings(Request $request): RedirectResponse
     {
-        $brand = $request->route('distributionBrand', 'ysumc');
+        $brand = $this->distributionBrand($request);
         $values = $request->validate([
             'min_version' => ['nullable', 'string', 'max:32'],
             'latest_version' => ['nullable', 'string', 'max:32'],
@@ -273,7 +277,7 @@ final class InstanceController
         ], $brand);
 
         return redirect()
-            ->route($brand === 'mutmc' ? 'sitmc-launcher.admin.mutmc' : 'sitmc-launcher.admin.index')
+            ->route($this->adminRouteName($request, 'index'))
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.settings-saved'));
     }
 
@@ -289,7 +293,7 @@ final class InstanceController
         }
 
         $values = $request->validate([
-            'distribution_brand' => ['nullable', 'in:ysumc,mutmc'],
+            'distribution_brand' => ['nullable', 'in:'.$this->distributionBrand($request)],
             'instance_id' => ['required', 'string', 'max:128', 'regex:/^[A-Za-z0-9._-]+$/', $unique],
             'name' => ['required', 'string', 'max:128'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -310,9 +314,7 @@ final class InstanceController
         }
 
         return [
-            'distribution_brand' => $instanceId !== null
-                ? $this->repository->row($instanceId)['distribution_brand']
-                : ($values['distribution_brand'] ?? 'ysumc'),
+            'distribution_brand' => $this->distributionBrand($request),
             'instance_id' => $values['instance_id'],
             'name' => $values['name'],
             'description' => $values['description'] ?? null,
@@ -329,11 +331,9 @@ final class InstanceController
         ];
     }
 
-    private function requireInstance(string $instanceId): void
+    private function requireInstance(Request $request, string $instanceId): void
     {
-        if ($this->repository->row($instanceId) === null) {
-            abort(404);
-        }
+        $this->requireDistribution($request, $this->repository->row($instanceId));
     }
 
     private function nextRevision(string $instanceId): int

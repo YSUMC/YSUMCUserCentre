@@ -2,13 +2,14 @@
 
 {% set editing = release is not null %}
 
-{% block title %}
+{% block title %}{{ brandLabel }} ·
   {{ editing
     ? trans('sitmc-launcher::launcher.release.edit-title', {version: release.version})
     : trans('sitmc-launcher::launcher.release.create-title') }}
 {% endblock %}
 
 {% block content %}
+  {% include 'sitmc-launcher::admin.distribution-nav' with {activeTab: 'releases'} %}
   {% if status %}
     <div class="callout callout-success">{{ status }}</div>
   {% endif %}
@@ -30,18 +31,10 @@
         class="card card-primary"
         method="post"
         action="{{ editing
-          ? route('sitmc-launcher.admin.releases.update', {id: release.id})
-          : route('sitmc-launcher.admin.releases.store') }}"
+          ? route(adminRoutePrefix ~ 'releases.update', {id: release.id})
+          : route(adminRoutePrefix ~ 'releases.store') }}"
       >
         {{ csrf_field() }}
-    <div class="form-group p-3">
-      <label>所属启动器（创建后不可更改）</label>
-      <select name="distribution_brand" class="form-control" {{ editing ? 'disabled' : '' }}>
-        <option value="ysumc" {{ release.distribution_brand != 'mutmc' ? 'selected' : '' }}>YSUMC</option>
-        <option value="mutmc" {{ release.distribution_brand == 'mutmc' ? 'selected' : '' }}>MUTMCL</option>
-      </select>
-      <small>为 MUTMCL 发布时选择 MUTMCL，两种启动器的公告和更新互不混用。MUTMCL 更新接口：<code>/api/launcher/mutmc/update/{target}/{arch}/{current_version}</code></small>
-    </div>
         {% if editing %}{{ method_field('PUT') }}{% endif %}
 
         <div class="card-header">
@@ -198,7 +191,7 @@
           <button class="btn btn-primary" type="submit">
             {{ trans('sitmc-launcher::launcher.action.save') }}
           </button>
-          <a class="btn btn-default float-right" href="{{ route('sitmc-launcher.admin.releases.index') }}">
+          <a class="btn btn-default float-right" href="{{ route(adminRoutePrefix ~ 'releases.index') }}">
             {{ trans('sitmc-launcher::launcher.action.back') }}
           </a>
         </div>

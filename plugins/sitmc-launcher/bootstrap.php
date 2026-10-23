@@ -81,7 +81,7 @@ return function ($plugin) {
         'icon' => 'fa-cube',
     ]);
 
-    Hook::addMenuItem('admin', 3, ['title' => 'MUTMCL 分发', 'link' => 'admin/launcher/mutmc', 'icon' => 'fa-trophy']);
+    Hook::addMenuItem('admin', 3, ['title' => 'sitmc-launcher::launcher.distribution.mutmc-menu', 'link' => 'admin/launcher/mutmc', 'icon' => 'fa-trophy']);
 
     Hook::addRoute(function (Router $router) {
         // mc-interop v1 unified exit. Same bytes at the canonical well-known
@@ -182,111 +182,132 @@ return function ($plugin) {
         $router->group(
             ['middleware' => ['web', 'authorize', 'role:admin'], 'prefix' => 'admin/launcher'],
             function () use ($router) {
-                $router->get('mutmc', [InstanceController::class, 'index'])
-                    ->defaults('distributionBrand', 'mutmc')->name('sitmc-launcher.admin.mutmc');
-                $router->post('mutmc/settings', [InstanceController::class, 'saveSettings'])
-                    ->defaults('distributionBrand', 'mutmc')->name('sitmc-launcher.admin.mutmc.settings');
+                foreach (['ysumc', 'mutmc'] as $brand) {
+                    $router->group(['prefix' => $brand === 'mutmc' ? 'mutmc' : ''], function () use ($router, $brand) {
+                        $names = 'sitmc-launcher.admin.'.($brand === 'mutmc' ? 'mutmc.' : '');
+                        $router->get('', [InstanceController::class, 'index'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($brand === 'mutmc' ? 'sitmc-launcher.admin.mutmc' : $names.'index');
 
-                $router->get('', [InstanceController::class, 'index'])
-                    ->name('sitmc-launcher.admin.index');
+                        $router->post('settings', [InstanceController::class, 'saveSettings'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'settings');
 
-                $router->post('settings', [InstanceController::class, 'saveSettings'])
-                    ->name('sitmc-launcher.admin.settings');
+                        $router->get('instances/create', [InstanceController::class, 'create'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'create');
 
-                $router->get('instances/create', [InstanceController::class, 'create'])
-                    ->name('sitmc-launcher.admin.create');
+                        $router->post('instances', [InstanceController::class, 'store'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'store');
 
-                $router->post('instances', [InstanceController::class, 'store'])
-                    ->name('sitmc-launcher.admin.store');
+                        $router->get('instances/{instanceId}/edit', [InstanceController::class, 'edit'])
+                            ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'edit');
 
-                $router->get('instances/{instanceId}/edit', [InstanceController::class, 'edit'])
-                    ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
-                    ->name('sitmc-launcher.admin.edit');
+                        $router->put('instances/{instanceId}', [InstanceController::class, 'update'])
+                            ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'update');
 
-                $router->put('instances/{instanceId}', [InstanceController::class, 'update'])
-                    ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
-                    ->name('sitmc-launcher.admin.update');
+                        $router->delete('instances/{instanceId}', [InstanceController::class, 'destroy'])
+                            ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'destroy');
 
-                $router->delete('instances/{instanceId}', [InstanceController::class, 'destroy'])
-                    ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
-                    ->name('sitmc-launcher.admin.destroy');
+                        $router->post('instances/{instanceId}/packs', [InstanceController::class, 'storePack'])
+                            ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'packs.store');
 
-                $router->post('instances/{instanceId}/packs', [InstanceController::class, 'storePack'])
-                    ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
-                    ->name('sitmc-launcher.admin.packs.store');
+                        $router->post(
+                            'instances/{instanceId}/packs/external',
+                            [InstanceController::class, 'storeExternalPack']
+                        )
+                            ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'packs.external');
 
-                $router->post(
-                    'instances/{instanceId}/packs/external',
-                    [InstanceController::class, 'storeExternalPack']
-                )
-                    ->where('instanceId', '[A-Za-z0-9._-]{1,128}')
-                    ->name('sitmc-launcher.admin.packs.external');
+                        $router->post(
+                            'instances/{instanceId}/packs/{revision}/activate',
+                            [InstanceController::class, 'activatePack']
+                        )
+                            ->where(['instanceId' => '[A-Za-z0-9._-]{1,128}', 'revision' => '[0-9]+'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'packs.activate');
 
-                $router->post(
-                    'instances/{instanceId}/packs/{revision}/activate',
-                    [InstanceController::class, 'activatePack']
-                )
-                    ->where(['instanceId' => '[A-Za-z0-9._-]{1,128}', 'revision' => '[0-9]+'])
-                    ->name('sitmc-launcher.admin.packs.activate');
+                        $router->delete(
+                            'instances/{instanceId}/packs/{revision}',
+                            [InstanceController::class, 'destroyPack']
+                        )
+                            ->where(['instanceId' => '[A-Za-z0-9._-]{1,128}', 'revision' => '[0-9]+'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'packs.destroy');
 
-                $router->delete(
-                    'instances/{instanceId}/packs/{revision}',
-                    [InstanceController::class, 'destroyPack']
-                )
-                    ->where(['instanceId' => '[A-Za-z0-9._-]{1,128}', 'revision' => '[0-9]+'])
-                    ->name('sitmc-launcher.admin.packs.destroy');
+                        $router->get('announcements', [AdminAnnouncementController::class, 'index'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.index');
 
-                $router->get('announcements', [AdminAnnouncementController::class, 'index'])
-                    ->name('sitmc-launcher.admin.announcements.index');
+                        $router->get('announcements/create', [AdminAnnouncementController::class, 'create'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.create');
 
-                $router->get('announcements/create', [AdminAnnouncementController::class, 'create'])
-                    ->name('sitmc-launcher.admin.announcements.create');
+                        $router->post('announcements', [AdminAnnouncementController::class, 'store'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.store');
 
-                $router->post('announcements', [AdminAnnouncementController::class, 'store'])
-                    ->name('sitmc-launcher.admin.announcements.store');
+                        $router->get('announcements/{announcementId}/edit', [
+                            AdminAnnouncementController::class, 'edit',
+                        ])
+                            ->where('announcementId', AnnouncementRules::ID_PATTERN)
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.edit');
 
-                $router->get('announcements/{announcementId}/edit', [
-                    AdminAnnouncementController::class, 'edit',
-                ])
-                    ->where('announcementId', AnnouncementRules::ID_PATTERN)
-                    ->name('sitmc-launcher.admin.announcements.edit');
+                        $router->put('announcements/{announcementId}', [
+                            AdminAnnouncementController::class, 'update',
+                        ])
+                            ->where('announcementId', AnnouncementRules::ID_PATTERN)
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.update');
 
-                $router->put('announcements/{announcementId}', [
-                    AdminAnnouncementController::class, 'update',
-                ])
-                    ->where('announcementId', AnnouncementRules::ID_PATTERN)
-                    ->name('sitmc-launcher.admin.announcements.update');
+                        $router->delete('announcements/{announcementId}', [
+                            AdminAnnouncementController::class, 'destroy',
+                        ])
+                            ->where('announcementId', AnnouncementRules::ID_PATTERN)
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'announcements.destroy');
 
-                $router->delete('announcements/{announcementId}', [
-                    AdminAnnouncementController::class, 'destroy',
-                ])
-                    ->where('announcementId', AnnouncementRules::ID_PATTERN)
-                    ->name('sitmc-launcher.admin.announcements.destroy');
+                        $router->get('releases', [ReleaseController::class, 'index'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.index');
 
-                $router->get('releases', [ReleaseController::class, 'index'])
-                    ->name('sitmc-launcher.admin.releases.index');
+                        $router->get('releases/create', [ReleaseController::class, 'create'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.create');
 
-                $router->get('releases/create', [ReleaseController::class, 'create'])
-                    ->name('sitmc-launcher.admin.releases.create');
+                        $router->post('releases', [ReleaseController::class, 'store'])
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.store');
 
-                $router->post('releases', [ReleaseController::class, 'store'])
-                    ->name('sitmc-launcher.admin.releases.store');
+                        $router->get('releases/{id}/edit', [ReleaseController::class, 'edit'])
+                            ->where('id', '[0-9]+')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.edit');
 
-                $router->get('releases/{id}/edit', [ReleaseController::class, 'edit'])
-                    ->where('id', '[0-9]+')
-                    ->name('sitmc-launcher.admin.releases.edit');
+                        $router->put('releases/{id}', [ReleaseController::class, 'update'])
+                            ->where('id', '[0-9]+')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.update');
 
-                $router->put('releases/{id}', [ReleaseController::class, 'update'])
-                    ->where('id', '[0-9]+')
-                    ->name('sitmc-launcher.admin.releases.update');
+                        $router->delete('releases/{id}', [ReleaseController::class, 'destroy'])
+                            ->where('id', '[0-9]+')
+                            ->defaults('distributionBrand', $brand)
+                            ->name($names.'releases.destroy');
+                    });
+                }
 
-                $router->delete('releases/{id}', [ReleaseController::class, 'destroy'])
-                    ->where('id', '[0-9]+')
-                    ->name('sitmc-launcher.admin.releases.destroy');
-
-                // mc-interop admin screens. These are additive routes; the
-                // legacy instance/announcement/release routes above are
-                // registered exactly as before.
+                // YSUMC interop remains outside the MUTMCL administration area.
                 $router->get('interop', [AdminInteropController::class, 'index'])
                     ->name('sitmc-launcher.admin.interop.index');
 

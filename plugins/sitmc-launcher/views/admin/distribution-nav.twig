@@ -1,0 +1,10 @@
+<h2>{{ brandLabel }} · {{ trans('sitmc-launcher::launcher.distribution.title') }}</h2>
+<p class="text-muted">{{ trans('sitmc-launcher::launcher.distribution.intro', {brand: brandLabel}) }}</p>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'instances' ? 'active' : '' }}" href="{{ route(adminIndexRoute) }}">{{ trans('sitmc-launcher::launcher.tab.instances') }}</a></li>
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'announcements' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'announcements.index') }}">{{ trans('sitmc-launcher::launcher.tab.announcements') }}</a></li>
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'releases' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'releases.index') }}">{{ trans('sitmc-launcher::launcher.tab.releases') }}</a></li>
+  {% if distributionBrand == 'ysumc' %}
+    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.interop.index') }}">{{ trans('sitmc-launcher::launcher.tab.interop') }}</a></li>
+  {% endif %}
+</ul>

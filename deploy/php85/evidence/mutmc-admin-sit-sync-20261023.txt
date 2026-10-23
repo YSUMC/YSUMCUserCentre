@@ -1,0 +1,65 @@
+MUTMCL independent administration and SIT incremental synchronization
+Date: 2026-10-23 (Asia/Shanghai)
+Branch: codex/mutmc-admin-isolation
+Production: https://skin.ysumc.net
+Root: /www/wwwroot/ysumcusercentre
+Runtime: PHP 8.5.12, ysumc-php85-fpm
+
+Delivered
+- /admin/launcher/mutmc: instances, packs, version policy, cloud map.
+- /admin/launcher/mutmc/announcements: MUTMCL announcements only.
+- /admin/launcher/mutmc/releases: MUTMCL launcher releases only.
+- Route-bound distribution ownership on create/read/update/delete and pack actions.
+- Separate navigation, forms and redirects; no brand dropdown.
+- Existing YSUMC routes now list only YSUMC records.
+- Public /api/launcher/mutmc announcements and update endpoints deployed.
+- Existing MUTMCL manifest/packs remain independent from YSUMC interop.
+- Pending local MUTMCL distribution code was preserved in foundation commit 1ac3b2d.
+
+Client source audit (Axolotl-YSUMCL; existing uncommitted client work preserved)
+- brands/catalog.json sets MUTMCL apiBase to https://skin.ysumc.net/api/launcher/mutmc.
+- apps/app-frontend/src/branding.ts derives manifest, announcements and releases URLs.
+- RemoteAnnouncements.vue fetches the brand URL unless explicitly overridden at build time.
+- useLauncherReleases.ts fetches launcherServices.releasesUrl and uses brand-specific cache keys.
+- packages/app-lib/src/branding.rs selects the runtime brand from the application identifier.
+- api/managed.rs fetches MUTMCL's own manifest, not YSUMC interop aggregation.
+- apps/app/src/updater_impl.rs derives dynamic updates and the versions catalog from the active brand.
+- Backend ownership is enforced using the route, not client query/body parameters.
+- This was a source and endpoint audit, not an end-to-end run of an installed MUTMCL binary.
+
+SIT upstream
+- learning/sitmc-launcher fast-forwarded from 7fcf275 to cf207bb.
+- Ported e5037e5: reject the site's own domain, including APP_URL fallback identity.
+- Ported e2da316: on well-known 403/404 only, try the same origin's plugin site endpoint.
+  Existing public DNS pinning, HTTPS validation, no-redirect policy, retries and size limits retained.
+- Ported f8a0bd8: ignore already-forwarded entries containing source to avoid loops.
+- Deferred cf207bb own-only canonical SiteDocument behavior: current YSUMC client
+  api/managed/interop.rs::fetch_catalog still reads the aggregated well-known document
+  and does not fetch /friends. Switching the contract before client migration would
+  remove friend instances from current clients. MUTMCL does not use this aggregation.
+
+Validation performed
+- PHP syntax on staged plugin files with the production PHP binary.
+- 98 targeted read-only runtime checks as www, using an explicitly READ ONLY DB transaction:
+  12 admin list/create views and navigation, admin middleware, cross-brand read/delete
+  rejection, wrong-brand creation rejection, public MUTMCL responses.
+- 19 isolated SIT incremental checks using scripted transport; no external network calls.
+- No full regression suite was run. Existing affected tests were aligned to the new contract.
+- 23 deployed source hashes matched the staged manifest.
+- Existing instance, pack, settings, announcement and release rows were unchanged.
+- Existing YSUMC manifest/announcements/update payloads and MUTMCL manifest were unchanged.
+- Home and login HTTP 200; well-known and friends HTTP 200.
+- MUTMCL manifest/announcements/update versions/update releases HTTP 200.
+- MUTMCL latest and Windows dynamic updater HTTP 204 (no published MUTMCL release).
+- Zero root-owned files in storage/framework/views after deployment.
+- Browser session had expired; opening MUTMCL admin redirected to login as expected.
+  No credentials were entered and no content was published through the browser.
+
+Private production backup and rollback
+- /var/backups/ysumc/mutmc-admin-20261023-1535
+- plugin-before.tar.gz, original/, manifest.json, launcher-data-before.json,
+  http-before.json, http-after.json, verification.txt, deploy.py, deployed.json.
+- Roll back code (hash guarded):
+  python3 /var/backups/ysumc/mutmc-admin-20261023-1535/deploy.py rollback
+- Deployment changed plugin code only; database backup is retained for manual recovery.
+- PHP-FPM was gracefully reloaded; the PHP version and other services were not changed.

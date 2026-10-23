@@ -210,7 +210,8 @@ final class InteropController
         $enabled = (bool) ($values['enabled'] ?? true);
         $settings = $this->repository->settings();
 
-        if ($settings['site_domain'] !== null && $domain === $settings['site_domain']) {
+        if ($domain === $this->documents->domain($request->root())
+            || ($settings['site_domain'] !== null && $domain === $settings['site_domain'])) {
             throw ValidationException::withMessages([
                 'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);
@@ -295,7 +296,8 @@ final class InteropController
 
         $settings = $this->repository->settings();
 
-        if ($settings['site_domain'] !== null && $domain === $settings['site_domain']) {
+        if ($domain === $this->documents->domain($request->root())
+            || ($settings['site_domain'] !== null && $domain === $settings['site_domain'])) {
             throw ValidationException::withMessages([
                 'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);

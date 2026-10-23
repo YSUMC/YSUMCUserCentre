@@ -2,13 +2,14 @@
 
 {% set editing = announcement is not null %}
 
-{% block title %}
+{% block title %}{{ brandLabel }} ·
   {{ editing
     ? trans('sitmc-launcher::launcher.announcement.edit-title', {id: announcement.announcement_id})
     : trans('sitmc-launcher::launcher.announcement.create-title') }}
 {% endblock %}
 
 {% block content %}
+  {% include 'sitmc-launcher::admin.distribution-nav' with {activeTab: 'announcements'} %}
   {% if status %}
     <div class="callout callout-success">{{ status }}</div>
   {% endif %}
@@ -28,18 +29,10 @@
     class="card card-primary"
     method="post"
     action="{{ editing
-      ? route('sitmc-launcher.admin.announcements.update', {announcementId: announcement.announcement_id})
-      : route('sitmc-launcher.admin.announcements.store') }}"
+      ? route(adminRoutePrefix ~ 'announcements.update', {announcementId: announcement.announcement_id})
+      : route(adminRoutePrefix ~ 'announcements.store') }}"
   >
     {{ csrf_field() }}
-    <div class="form-group p-3">
-      <label>所属启动器（创建后不可更改）</label>
-      <select name="distribution_brand" class="form-control" {{ editing ? 'disabled' : '' }}>
-        <option value="ysumc" {{ announcement.distribution_brand != 'mutmc' ? 'selected' : '' }}>YSUMC</option>
-        <option value="mutmc" {{ announcement.distribution_brand == 'mutmc' ? 'selected' : '' }}>MUTMCL</option>
-      </select>
-      <small>为 MUTMCL 发布时选择 MUTMCL，两种启动器的公告和更新互不混用。</small>
-    </div>
     {% if editing %}{{ method_field('PUT') }}{% endif %}
 
     <div class="card-header">
@@ -210,7 +203,7 @@
       <button class="btn btn-primary" type="submit">
         {{ trans('sitmc-launcher::launcher.action.save') }}
       </button>
-      <a class="btn btn-default float-right" href="{{ route('sitmc-launcher.admin.announcements.index') }}">
+      <a class="btn btn-default float-right" href="{{ route(adminRoutePrefix ~ 'announcements.index') }}">
         {{ trans('sitmc-launcher::launcher.action.back') }}
       </a>
     </div>

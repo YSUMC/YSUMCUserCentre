@@ -5,6 +5,8 @@ namespace SITMinecraft\Launcher\Interop;
 /** Bounded v1-only conditional fetch; PeerTransport pins validated public DNS. */
 final class PeerFetcher
 {
+    private const FALLBACK_PATH = '/api/launcher/interop/v1/site';
+
     private PeerTransport $transport;
 
     public function __construct(
@@ -20,9 +22,24 @@ final class PeerFetcher
 
     public function get(string $url, ?string $etag = null): array
     {
-        if (InteropRules::publicHttpsUrl($url) === null || parse_url($url, PHP_URL_PATH) !== InteropRules::WELL_KNOWN_PATH || parse_url($url, PHP_URL_QUERY) !== null) {
+        if (InteropRules::publicHttpsUrl($url) === null || parse_url($url, PHP_URL_PATH) !== InteropRules::WELL_KNOWN_PATH || parse_url($url, PHP_URL_QUERY) !== null || parse_url($url, PHP_URL_FRAGMENT) !== null) {
             return $this->failure('peer-url-invalid');
         }
+        $result = $this->fetch($url, $etag);
+
+        if (in_array($result['error'], ['peer-http-403', 'peer-http-404'], true)) {
+            // Only substitute the path on the already validated origin. The
+            // same transport rechecks/pins public DNS and forbids redirects.
+            $fallback = substr($url, 0, -strlen(InteropRules::WELL_KNOWN_PATH)).self::FALLBACK_PATH;
+
+            return $this->fetch($fallback, $etag);
+        }
+
+        return $result;
+    }
+
+    private function fetch(string $url, ?string $etag): array
+    {
         for ($attempt = 0; $attempt < $this->attempts; ++$attempt) {
             try {
                 $response = $this->transport->get($url, $etag);

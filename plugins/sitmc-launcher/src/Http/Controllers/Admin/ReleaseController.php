@@ -20,6 +20,8 @@ use SITMinecraft\Launcher\Update\ReleaseRules;
  */
 final class ReleaseController
 {
+    use ScopesDistribution;
+
     /**
      * Shown on the release form so an administrator can copy the URL template
      * into the updater configuration without guessing the placeholders.
@@ -28,11 +30,11 @@ final class ReleaseController
 
     public function __construct(private ReleaseRepository $repository) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $releases = [];
 
-        foreach ($this->repository->rows(null) as $row) {
+        foreach ($this->repository->rows($this->distributionBrand($request)) as $row) {
             $row['metadata_problem'] = ReleaseRules::metadataProblem($row);
             $row['artifact_problem'] = ReleaseRules::artifactProblem($row);
             $releases[] = $row;
@@ -40,20 +42,20 @@ final class ReleaseController
 
         return view('sitmc-launcher::admin.releases', [
             'releases' => $releases,
-            'latestPath' => '/api/launcher/update/latest',
+            'latestPath' => $this->distributionBrand($request) === 'mutmc' ? '/api/launcher/mutmc/update/latest' : '/api/launcher/update/latest',
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('sitmc-launcher::admin.release', [
             'release' => null,
             'problems' => [],
             'nowInput' => Timestamps::inputValue(now()),
-            'dynamicPath' => self::DYNAMIC_PATH,
+            'dynamicPath' => $this->distributionBrand($request) === 'mutmc' ? str_replace('/api/launcher/', '/api/launcher/mutmc/', self::DYNAMIC_PATH) : self::DYNAMIC_PATH,
             'status' => null,
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -66,13 +68,13 @@ final class ReleaseController
         ]);
 
         return redirect()
-            ->route('sitmc-launcher.admin.releases.index')
+            ->route($this->adminRouteName($request, 'releases.index'))
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.release-created'));
     }
 
-    public function edit(int $id): View
+    public function edit(Request $request, int $id): View
     {
-        $row = $this->requireRelease($id);
+        $row = $this->requireRelease($request, $id);
 
         return view('sitmc-launcher::admin.release', [
             'release' => self::forForm($row),
@@ -80,33 +82,33 @@ final class ReleaseController
             'nowInput' => Timestamps::inputValue(now()),
             'dynamicPath' => $row['distribution_brand'] === 'mutmc' ? str_replace('/api/launcher/', '/api/launcher/mutmc/', self::DYNAMIC_PATH) : self::DYNAMIC_PATH,
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function update(Request $request, int $id): RedirectResponse
     {
-        $this->requireRelease($id);
+        $this->requireRelease($request, $id);
 
         $values = $this->validated($request);
-        $values['distribution_brand'] = $this->requireRelease($id)['distribution_brand'];
+        $values['distribution_brand'] = $this->requireRelease($request, $id)['distribution_brand'];
         $values['id'] = $id;
         $values['updated_at'] = now();
 
         $this->repository->save($values);
 
         return redirect()
-            ->route('sitmc-launcher.admin.releases.edit', $id)
+            ->route($this->adminRouteName($request, 'releases.edit'), $id)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.release-saved'));
     }
 
-    public function destroy(int $id): RedirectResponse
+    public function destroy(Request $request, int $id): RedirectResponse
     {
-        $this->requireRelease($id);
+        $this->requireRelease($request, $id);
 
         $this->repository->delete($id);
 
         return redirect()
-            ->route('sitmc-launcher.admin.releases.index')
+            ->route($this->adminRouteName($request, 'releases.index'))
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.release-deleted'));
     }
 
@@ -116,7 +118,7 @@ final class ReleaseController
     private function validated(Request $request): array
     {
         $values = $request->validate([
-            'distribution_brand' => ['nullable', 'in:ysumc,mutmc'],
+            'distribution_brand' => ['nullable', 'in:'.$this->distributionBrand($request)],
             'channel' => ['required', 'in:'.implode(',', ReleaseRules::CHANNELS)],
             'version' => [
                 'required', 'string', 'max:64',
@@ -171,7 +173,7 @@ final class ReleaseController
         }
 
         return [
-            'distribution_brand' => $values['distribution_brand'] ?? 'ysumc',
+            'distribution_brand' => $this->distributionBrand($request),
             'channel' => $values['channel'],
             'version' => trim($values['version']),
             'notes' => self::textOrNull($values['notes'] ?? null),
@@ -201,15 +203,11 @@ final class ReleaseController
     /**
      * @return array<string, mixed>
      */
-    private function requireRelease(int $id): array
+    private function requireRelease(Request $request, int $id): array
     {
         $row = $this->repository->row($id);
 
-        if ($row === null) {
-            abort(404);
-        }
-
-        return $row;
+        return $this->requireDistribution($request, $row);
     }
 
     private static function textOrNull(mixed $value): ?string

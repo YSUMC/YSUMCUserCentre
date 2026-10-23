@@ -399,3 +399,8 @@ interop:
     peer-redirect-limit: "The peer redirected too many times."
     peer-json-invalid: "The peer did not return valid JSON."
     peer-document-too-large: "The peer document exceeds the 1 MiB limit."
+
+distribution:
+  title: Launcher configuration
+  mutmc-menu: MUTMCL Launcher
+  intro: 'Manage instances, announcements, launcher releases and the cloud map for :brand only.'

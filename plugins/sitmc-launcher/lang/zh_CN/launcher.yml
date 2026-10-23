@@ -399,3 +399,8 @@ interop:
     peer-redirect-limit: "友站重定向次数过多。"
     peer-json-invalid: "友站返回的不是合法 JSON。"
     peer-document-too-large: "友站文档超过 1 MiB 上限。"
+
+distribution:
+  title: 启动器配置
+  mutmc-menu: MUTMCL 启动器
+  intro: '此页面只管理 :brand 的实例、公告、启动器版本和云地图。'

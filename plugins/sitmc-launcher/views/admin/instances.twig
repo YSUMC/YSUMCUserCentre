@@ -1,17 +1,9 @@
 {% extends 'admin.base' %}
 
-{% block title %}{{ trans('sitmc-launcher::launcher.title') }}{% endblock %}
+{% block title %}{{ brandLabel }} · {{ trans('sitmc-launcher::launcher.title') }}{% endblock %}
 
 {% block content %}
-  <h2>{{ distributionBrand == 'mutmc' ? 'MUTMCL' : 'YSUMC' }} · 整合包分发</h2>
-  <p>整合包和云地图按启动器独立配置。MUTMCL 暂只发布带 SHA-1 的 .mrpack 整合包；未启用或缺少文件的记录不会公开。</p>
-  <ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><a class="nav-link {{ distributionBrand != 'mutmc' ? 'active' : '' }}" href="{{ route('sitmc-launcher.admin.index') }}">{{ trans('sitmc-launcher::launcher.tab.instances') }}</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.announcements.index') }}">{{ trans('sitmc-launcher::launcher.tab.announcements') }}</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.releases.index') }}">{{ trans('sitmc-launcher::launcher.tab.releases') }}</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.interop.index') }}">{{ trans('sitmc-launcher::launcher.tab.interop') }}</a></li>
-    <li class="nav-item"><a class="nav-link {{ distributionBrand == 'mutmc' ? 'active' : '' }}" href="{{ route('sitmc-launcher.admin.mutmc') }}">MUTMCL 分发</a></li>
-  </ul>
+  {% include 'sitmc-launcher::admin.distribution-nav' with {activeTab: 'instances'} %}
 
   {% if status %}
     <div class="callout callout-success">{{ status }}</div>
@@ -81,14 +73,14 @@
                     <td>
                       <a
                         class="btn btn-sm btn-default"
-                        href="{{ route('sitmc-launcher.admin.edit', {instanceId: row.instance_id}) }}"
+                        href="{{ route(adminRoutePrefix ~ 'edit', {instanceId: row.instance_id}) }}"
                       >
                         {{ trans('sitmc-launcher::launcher.action.edit') }}
                       </a>
                       <form
                         class="d-inline"
                         method="post"
-                        action="{{ route('sitmc-launcher.admin.destroy', {instanceId: row.instance_id}) }}"
+                        action="{{ route(adminRoutePrefix ~ 'destroy', {instanceId: row.instance_id}) }}"
                         onsubmit="return confirm('{{ trans('sitmc-launcher::launcher.instances.confirm-delete') }}')"
                       >
                         {{ csrf_field() }}
@@ -105,7 +97,7 @@
           {% endif %}
         </div>
         <div class="card-footer">
-          <a class="btn btn-primary" href="{{ route('sitmc-launcher.admin.create', {brand: distributionBrand}) }}">
+          <a class="btn btn-primary" href="{{ route(adminRoutePrefix ~ 'create') }}">
             {{ trans('sitmc-launcher::launcher.instances.create') }}
           </a>
         </div>
@@ -113,7 +105,7 @@
     </div>
 
     <div class="col-md-4">
-      <form class="card card-info" method="post" action="{{ route(distributionBrand == 'mutmc' ? 'sitmc-launcher.admin.mutmc.settings' : 'sitmc-launcher.admin.settings') }}">
+      <form class="card card-info" method="post" action="{{ route(adminRoutePrefix ~ 'settings') }}">
         {{ csrf_field() }}
         <div class="card-header">
           <h3 class="card-title">{{ trans('sitmc-launcher::launcher.settings.title') }}</h3>

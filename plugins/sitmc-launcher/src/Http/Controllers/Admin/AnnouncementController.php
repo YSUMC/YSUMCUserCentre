@@ -20,13 +20,15 @@ use SITMinecraft\Launcher\Support\Timestamps;
  */
 final class AnnouncementController
 {
+    use ScopesDistribution;
+
     public function __construct(private AnnouncementRepository $repository) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $announcements = [];
 
-        foreach ($this->repository->rows(null) as $row) {
+        foreach ($this->repository->rows($this->distributionBrand($request)) as $row) {
             $row['problem'] = AnnouncementRules::publishProblem($row);
             $row['window'] = AnnouncementRules::window($row);
             $announcements[] = $row;
@@ -34,19 +36,19 @@ final class AnnouncementController
 
         return view('sitmc-launcher::admin.announcements', [
             'announcements' => $announcements,
-            'endpointPath' => '/api/launcher/announcements',
+            'endpointPath' => $this->distributionBrand($request) === 'mutmc' ? '/api/launcher/mutmc/announcements' : '/api/launcher/announcements',
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('sitmc-launcher::admin.announcement', [
             'announcement' => null,
             'problems' => [],
             'nowInput' => Timestamps::inputValue(now()),
             'status' => null,
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -59,45 +61,45 @@ final class AnnouncementController
         ]);
 
         return redirect()
-            ->route('sitmc-launcher.admin.announcements.edit', $values['announcement_id'])
+            ->route($this->adminRouteName($request, 'announcements.edit'), $values['announcement_id'])
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.announcement-created'));
     }
 
-    public function edit(string $announcementId): View
+    public function edit(Request $request, string $announcementId): View
     {
-        $row = $this->requireAnnouncement($announcementId);
+        $row = $this->requireAnnouncement($request, $announcementId);
 
         return view('sitmc-launcher::admin.announcement', [
             'announcement' => self::forForm($row),
             'problems' => AnnouncementRules::problems($row),
             'nowInput' => Timestamps::inputValue(now()),
             'status' => session('sitmc_launcher_status'),
-        ]);
+        ] + $this->distributionViewData($request));
     }
 
     public function update(Request $request, string $announcementId): RedirectResponse
     {
-        $this->requireAnnouncement($announcementId);
+        $this->requireAnnouncement($request, $announcementId);
 
         $values = $this->validated($request, $announcementId);
-        $values['distribution_brand'] = $this->requireAnnouncement($announcementId)['distribution_brand'];
+        $values['distribution_brand'] = $this->requireAnnouncement($request, $announcementId)['distribution_brand'];
         $values['updated_at'] = now();
 
         $this->repository->save($values);
 
         return redirect()
-            ->route('sitmc-launcher.admin.announcements.edit', $announcementId)
+            ->route($this->adminRouteName($request, 'announcements.edit'), $announcementId)
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.announcement-saved'));
     }
 
-    public function destroy(string $announcementId): RedirectResponse
+    public function destroy(Request $request, string $announcementId): RedirectResponse
     {
-        $this->requireAnnouncement($announcementId);
+        $this->requireAnnouncement($request, $announcementId);
 
         $this->repository->delete($announcementId);
 
         return redirect()
-            ->route('sitmc-launcher.admin.announcements.index')
+            ->route($this->adminRouteName($request, 'announcements.index'))
             ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.status.announcement-deleted'));
     }
 
@@ -113,7 +115,7 @@ final class AnnouncementController
         }
 
         $values = $request->validate([
-            'distribution_brand' => ['nullable', 'in:ysumc,mutmc'],
+            'distribution_brand' => ['nullable', 'in:'.$this->distributionBrand($request)],
             'announcement_id' => [
                 'required', 'string', 'max:'.AnnouncementRules::MAX_ID_LENGTH,
                 'regex:/^'.AnnouncementRules::ID_PATTERN.'$/', $unique,
@@ -131,6 +133,10 @@ final class AnnouncementController
             'enabled' => ['nullable', 'boolean'],
         ]);
 
+        if ($announcementId !== null && $values['announcement_id'] !== $announcementId) {
+            throw ValidationException::withMessages(['announcement_id' => '公告 ID 创建后不可修改。']);
+        }
+
         // The client silently drops an entry whose link is not a plain http(s)
         // URL, so the form refuses it here instead of publishing a dead entry.
         $problems = array_filter([
@@ -145,7 +151,7 @@ final class AnnouncementController
         }
 
         return [
-            'distribution_brand' => $values['distribution_brand'] ?? 'ysumc',
+            'distribution_brand' => $this->distributionBrand($request),
             'announcement_id' => $values['announcement_id'],
             'title' => $values['title'],
             'summary' => self::textOrNull($values['summary'] ?? null),
@@ -180,15 +186,11 @@ final class AnnouncementController
     /**
      * @return array<string, mixed>
      */
-    private function requireAnnouncement(string $announcementId): array
+    private function requireAnnouncement(Request $request, string $announcementId): array
     {
         $row = $this->repository->row($announcementId);
 
-        if ($row === null) {
-            abort(404);
-        }
-
-        return $row;
+        return $this->requireDistribution($request, $row);
     }
 
     /**

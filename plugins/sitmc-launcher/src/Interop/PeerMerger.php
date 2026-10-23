@@ -74,6 +74,12 @@ final class PeerMerger
                     continue;
                 }
 
+                // Ingest direct peers' own entries only, never re-exported
+                // third-party entries that would echo back to their origin.
+                if (isset($item['source'])) {
+                    continue;
+                }
+
                 $entry = $this->entry($item, $siteId);
 
                 if ($entry === null) {

@@ -2,9 +2,9 @@
 
 ## mc-interop v1（1.3.2）
 
-本分支基于 `learning/sitmc-launcher` 的 SIT 1.3.0，已同步到上游提交 `7fcf275`，按 [mc-interop v1 协议](launcher-interop-protocol-v1.md) 实现。已保留 YSUMC 的用户信息地址、更新接口、角色所有权和皮肤上传安全修复。
+本分支基于 `learning/sitmc-launcher` 的 SIT 1.3.0，此前同步到上游提交 `7fcf275`；2026-10-23 已审查 `cf207bb`，增补其中三个兼容修复，按 [mc-interop v1 协议](launcher-interop-protocol-v1.md) 实现。已保留 YSUMC 的用户信息地址、更新接口、角色所有权和皮肤上传安全修复。
 
-1.3.2 同步友站实例 ID 命名空间：本站 `survival` 不变，友站实例使用 `sitmc:survival`，不同站点的同名实例可以同时展示。主清单与 `/api/launcher/friends` 使用相同 ID；同一来源的重复 ID 保留第一条并记录诊断。转发条目保留原始 `source`，已有且匹配来源的前缀不会重复添加；本站实例和站点 ID 仍不允许冒号。此更新在独立分支 `codex/sit-launcher-sync-20261022` 完成，按用户要求未运行回归测试，等待用户核验。
+1.3.2 同步友站实例 ID 命名空间：本站 `survival` 不变，友站实例使用 `sitmc:survival`，不同站点的同名实例可以同时展示。主清单与 `/api/launcher/friends` 使用相同 ID；同一来源的重复 ID 保留第一条并记录诊断。带 `source` 的转引条目不再二次采入，避免回环；本站实例和站点 ID 仍不允许冒号。此更新在独立分支 `codex/sit-launcher-sync-20261022` 完成，按用户要求未运行回归测试，等待用户核验。
 
 | 端点 | 行为 |
 | --- | --- |
@@ -24,7 +24,7 @@
 
 公开响应提供 `ETag`、`Cache-Control: public, max-age=300`，支持弱 ETag、列表和 `*` 条件请求；站点名、删除、撤回、友站 stale 状态变化都会更新顶层时间。共享缓存响应不附加访客语言 Cookie。建议目录小于 256 KiB，超过 1 MiB 返回明确的 503。
 
-友站只取管理员允许的 v1 地址；固定校验后的公网 DNS、TLS 验证、禁用代理与重定向，15 秒超时、最多 3 次退避重试、1 MiB 响应限制。未知枚举条目跳过并进入诊断；失败或全部条目损坏保留最近成功快照并标记 stale，合法空目录则表示源站撤回发布。过期快照也标记 stale。不会递归采集友站的 peers；外来 ID 使用原始来源站点的命名空间，保留来源链的原始站点，同一命名空间内重复的 ID 会被丢弃并记录诊断。
+友站只取管理员允许的 v1 地址；固定校验后的公网 DNS、TLS 验证、禁用代理与重定向，15 秒超时、最多 3 次退避重试、1 MiB 响应限制。未知枚举条目跳过并进入诊断；失败或全部条目损坏保留最近成功快照并标记 stale，合法空目录则表示源站撤回发布。过期快照也标记 stale。不会递归采集友站的 peers；外来 ID 使用原始来源站点的命名空间，只采直连友站自己的条目，同一命名空间内重复的 ID 会被丢弃并记录诊断。
 
 公开请求只读取快照，不在 PHP 请求结束时发起网络同步。可以在后台手动同步，或安装后台提供的 cron 命令；生产已配置每 5 分钟同步一次。同步口令仅放在请求头，定时配置文件需限制读取权限。
 
@@ -37,6 +37,12 @@
 基于 SIT-Minecraft 的 `sitmc-launcher` 插件适配 YSUMC，本分支运行于 PHP 8.5.12 / Laravel 13 的 Blessing Skin 6.x 适配版。提供官方实例清单、整合包、公告、启动器更新元数据和受授权保护的皮肤接口，以及相应的管理后台。
 
 为兼容既有路由和数据，内部插件 ID、PHP 命名空间与表名仍保留 `sitmc-launcher` / `sitmc_launcher_*`。本插件不是独立服务；需要先补齐并部署用户中心。整体准备和已知缺口见 [YSUMC 系统复用开发文档](../../../docs/YSUMC系统复用开发文档.md)。
+
+## SIT 上游增补（2026-10-23）
+
+审查范围：`7fcf275..cf207bb`。已增补 `e5037e5`（禁止添加本站域名，包括 APP_URL 回退域名）、`e2da316`（well-known 返回 403/404 时请求同源 `/api/launcher/interop/v1/site`）、`f8a0bd8`（跳过带 source 的转引条目）。备用请求继续执行本地已有的公网 DNS 固定、TLS 校验、禁用重定向、超时和大小限制。
+
+暂缓 `cf207bb` 的“SiteDocument 只含本站”行为变更：当前 YSUMC 客户端 `api/managed/interop.rs::fetch_catalog()` 读取 well-known 聚合内容和本站 manifest，尚未读取独立 friends 接口。直接切换会使已有客户端丢失友站实例；需先完成客户端读取 friends 的迁移和发布。本地协议文档因此仍保留当前兼容契约。MUTMCL 始终使用独立的 manifest，不参与该聚合。
 
 ## 安装
 
@@ -113,9 +119,11 @@ Linux apt 更新另需 `/api/launcher/update/versions` 和 `.deb` 的 SHA-256、
 
 本站 manifest 需要合法 mrpack 和 SHA-1，只受实例启用状态与包完整性控制；公共 v1 出口也支持纯服务器、其他格式和 SHA-512，并额外遵守“对外清单”中的上架选择。公开下载 URL 不是账号访问控制；需要限制下载权限时应另行设计鉴权。
 
-## MUTMCL 整合包分发
+## MUTMCL 独立配置
 
-- 管理入口：`/admin/launcher/mutmc`，需皮肤站管理员权限；也可从后台菜单「MUTMCL 分发」进入。
+- 管理入口：`/admin/launcher/mutmc`，需皮肤站管理员权限；也可从后台菜单「MUTMCL 启动器」进入。
+- 公告管理：`/admin/launcher/mutmc/announcements`；版本管理：`/admin/launcher/mutmc/releases`。全部新增、编辑、删除、整合包操作都使用 MUTMCL 子路由，服务器固定品牌归属并拒绝跨品牌操作，不依赖表单下拉选择。
+- 公告接口：`/api/launcher/mutmc/announcements`；版本接口：`/api/launcher/mutmc/update/{latest,versions,releases}`，自动更新：`/api/launcher/mutmc/update/{target}/{arch}/{current_version}`。未发布时返回空列表或 204，不回退到 YSUMC。
 - 客户端清单：`/api/launcher/mutmc/manifest`。上传包的下载路由为 `/api/launcher/mutmc/packs/{instanceId}/{revision}`。
 - 在 MUTMCL 页面新建实例，填写游戏版本、加载器、服务器地址、开服日期等信息，再上传 `.mrpack`，或登记 HTTPS 外链、SHA-1 和字节大小。发布且包信息完整后即可出现在 MUTMCL 启动器，无需勾选 YSUMC 的「对外清单」上架。
 - 实例所属启动器创建后固定。实例 ID 在全站唯一，建议 MUTMCL 使用 `mut-` 前缀。MUTMCL 和 YSUMC 的实例清单、云地图及启动器版本策略分开存储，已有记录默认为 YSUMC。

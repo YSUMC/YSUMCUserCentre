@@ -115,23 +115,32 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
     {
         $values = ['instance_id' => 'mut-new', 'name' => 'MUT Server', 'game_version' => '1.21.1',
             'distribution_brand' => 'mutmc', 'enabled' => true];
-        $response = $this->admin->store(Request::create('/admin/launcher/instances', 'POST', $values));
+        $response = $this->admin->store($this->adminRequest('/admin/launcher/mutmc/instances', 'POST', $values));
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('mutmc', $this->catalog->row('mut-new')['distribution_brand']);
         $this->assertSame([], $this->catalog->rows());
-        $this->admin->update(Request::create('/admin/launcher/instances/mut-new', 'PUT',
-            array_replace($values, ['name' => 'Edited', 'distribution_brand' => 'ysumc'])), 'mut-new');
+        $this->admin->update($this->adminRequest('/admin/launcher/mutmc/instances/mut-new', 'PUT',
+            array_replace($values, ['name' => 'Edited'])), 'mut-new');
         $this->assertSame('mutmc', $this->catalog->row('mut-new')['distribution_brand']);
         $this->assertSame('Edited', $this->catalog->row('mut-new')['name']);
         $this->app->instance(PublicAddress::class, new class extends PublicAddress {
             public function resolve(string $host): array { return ['1.1.1.1']; }
         });
-        $this->admin->storeExternalPack(Request::create('/packs/external', 'POST', [
+        $this->admin->storeExternalPack($this->adminRequest('/admin/launcher/mutmc/instances/mut-new/packs/external', 'POST', [
             'url' => 'https://cdn.example.com/pack.mrpack', 'sha1' => str_repeat('a', 40),
             'size' => 100, 'format' => 'mrpack',
         ]), 'mut-new');
         $data = json_decode($this->mutmc->manifest(Request::create('/manifest'))->getContent(), true);
         $this->assertSame(['mut-new'], array_column($data['instances'], 'id'));
         $this->assertSame(2, $data['instances'][0]['revision']);
+    }
+
+    private function adminRequest(string $path, string $method, array $values): Request
+    {
+        $request = Request::create('https://skin.example.com'.$path, $method, $values);
+        $route = $this->app['router']->getRoutes()->match($request);
+        $request->setRouteResolver(fn () => $route);
+
+        return $request;
     }
 }

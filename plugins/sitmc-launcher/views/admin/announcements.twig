@@ -1,14 +1,9 @@
 {% extends 'admin.base' %}
 
-{% block title %}{{ trans('sitmc-launcher::launcher.announcements.title') }}{% endblock %}
+{% block title %}{{ brandLabel }} · {{ trans('sitmc-launcher::launcher.announcements.title') }}{% endblock %}
 
 {% block content %}
-  <ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.index') }}">{{ trans('sitmc-launcher::launcher.tab.instances') }}</a></li>
-    <li class="nav-item"><a class="nav-link active" href="{{ route('sitmc-launcher.admin.announcements.index') }}">{{ trans('sitmc-launcher::launcher.tab.announcements') }}</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.releases.index') }}">{{ trans('sitmc-launcher::launcher.tab.releases') }}</a></li>
-    <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.interop.index') }}">{{ trans('sitmc-launcher::launcher.tab.interop') }}</a></li>
-  </ul>
+  {% include 'sitmc-launcher::admin.distribution-nav' with {activeTab: 'announcements'} %}
 
   {% if status %}
     <div class="callout callout-success">{{ status }}</div>
@@ -43,7 +38,7 @@
           <tbody>
             {% for row in announcements %}
               <tr>
-                <td><code>{{ row.distribution_brand == 'mutmc' ? '[MUTMCL]' : '[YSUMC]' }} {{ row.announcement_id }}</code></td>
+                <td><code>{{ row.announcement_id }}</code></td>
                 <td>{{ row.title }}</td>
                 <td>{{ trans('sitmc-launcher::launcher.type.' ~ row.type) }}</td>
                 <td>{{ trans('sitmc-launcher::launcher.priority.' ~ row.priority) }}</td>
@@ -71,14 +66,14 @@
                 <td>
                   <a
                     class="btn btn-sm btn-default"
-                    href="{{ route('sitmc-launcher.admin.announcements.edit', {announcementId: row.announcement_id}) }}"
+                    href="{{ route(adminRoutePrefix ~ 'announcements.edit', {announcementId: row.announcement_id}) }}"
                   >
                     {{ trans('sitmc-launcher::launcher.action.edit') }}
                   </a>
                   <form
                     class="d-inline"
                     method="post"
-                    action="{{ route('sitmc-launcher.admin.announcements.destroy', {announcementId: row.announcement_id}) }}"
+                    action="{{ route(adminRoutePrefix ~ 'announcements.destroy', {announcementId: row.announcement_id}) }}"
                     onsubmit="return confirm('{{ trans('sitmc-launcher::launcher.announcements.confirm-delete') }}')"
                   >
                     {{ csrf_field() }}
@@ -95,13 +90,13 @@
       {% endif %}
     </div>
     <div class="card-footer">
-      <a class="btn btn-primary" href="{{ route('sitmc-launcher.admin.announcements.create') }}">
+      <a class="btn btn-primary" href="{{ route(adminRoutePrefix ~ 'announcements.create') }}">
         {{ trans('sitmc-launcher::launcher.announcements.create') }}
       </a>
-      <a class="btn btn-default float-right" href="{{ route('sitmc-launcher.admin.releases.index') }}">
+      <a class="btn btn-default float-right" href="{{ route(adminRoutePrefix ~ 'releases.index') }}">
         {{ trans('sitmc-launcher::launcher.releases.menu') }}
       </a>
-      <a class="btn btn-default float-right mr-2" href="{{ route('sitmc-launcher.admin.index') }}">
+      <a class="btn btn-default float-right mr-2" href="{{ route(adminIndexRoute) }}">
         {{ trans('sitmc-launcher::launcher.menu') }}
       </a>
     </div>
