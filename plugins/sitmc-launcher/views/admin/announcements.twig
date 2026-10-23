@@ -43,7 +43,7 @@
           <tbody>
             {% for row in announcements %}
               <tr>
-                <td><code>{{ row.announcement_id }}</code></td>
+                <td><code>{{ row.distribution_brand == 'mutmc' ? '[MUTMCL]' : '[YSUMC]' }} {{ row.announcement_id }}</code></td>
                 <td>{{ row.title }}</td>
                 <td>{{ trans('sitmc-launcher::launcher.type.' ~ row.type) }}</td>
                 <td>{{ trans('sitmc-launcher::launcher.priority.' ~ row.priority) }}</td>

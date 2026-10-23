@@ -92,6 +92,7 @@ final class ManifestRules
         return self::idProblem((string) ($row['id'] ?? ''))
             ?? self::revisionProblem((int) ($row['revision'] ?? 0))
             ?? ((string) ($row['game_version'] ?? '') === '' ? 'game-version-empty' : null)
+            ?? (($row['pack_format'] ?? 'mrpack') !== 'mrpack' ? 'pack-format-unsupported' : null)
             ?? (self::normalizeSha1($row['pack_sha1'] ?? null) === null ? 'pack-sha1-missing' : null)
             ?? ((int) ($row['pack_size'] ?? 0) <= 0 ? 'pack-size-missing' : null)
             ?? self::packUrlProblem($packUrl);

@@ -184,7 +184,7 @@ final class InteropTest extends \Tests\Security\TestCase
         $this->assertSame('skin.example.com', $this->documents->document('https://attacker.example.com')['document']['site']['domain']);
     }
 
-    public function testLegacyManifestAndDownloadsCannotBypassPublication(): void
+    public function testOwnManifestPublicationIsIndependentOfPublicListing(): void
     {
         $this->instance();
         $legacy = new LauncherRepository;
@@ -192,14 +192,39 @@ final class InteropTest extends \Tests\Security\TestCase
         $disk = new \Illuminate\Filesystem\FilesystemAdapter(new \League\Flysystem\Filesystem(new \League\Flysystem\Local\LocalFilesystemAdapter(storage_path('app'))), new \League\Flysystem\Local\LocalFilesystemAdapter(storage_path('app')));
         $download = new PackController($legacy, new PackStore($disk), $this->documents);
         $request = Request::create('https://skin.example.com/api/launcher/manifest');
-        $this->assertSame([], json_decode($manifest->show($request)->getContent(), true)['instances']);
-        $this->assertSame(404, $download->show('survival', 2)->getStatusCode());
+        $first = $manifest->show($request);
+        $this->assertCount(1, json_decode($first->getContent(), true)['instances']);
+        $this->assertSame([], json_decode($this->response()->getContent(), true)['packs']);
+        $this->assertSame(302, $download->show('survival', 2)->getStatusCode());
+        $conditional = clone $request;
+        $conditional->headers->set('If-None-Match', $first->headers->get('ETag'));
+        $this->assertSame(304, $manifest->show($conditional)->getStatusCode());
+        $conditional->headers->set('If-None-Match', '"old", W/'.$first->headers->get('ETag'));
+        $this->assertSame(304, $manifest->show($conditional)->getStatusCode());
         $this->repository->savePublications(['survival']);
         $this->assertCount(1, json_decode($manifest->show($request)->getContent(), true)['instances']);
         $this->assertSame(302, $download->show('survival', 2)->getStatusCode());
         $this->assertSame(404, $download->show('survival', 1)->getStatusCode());
         $this->repository->savePublications([]);
+        $this->assertSame($first->getContent(), $manifest->show($request)->getContent());
+        $this->assertSame(302, $download->show('survival', 2)->getStatusCode());
+        $this->assertSame([], json_decode($this->response()->getContent(), true)['packs']);
+        DB::table(LauncherSchema::INSTANCES)->where('instance_id', 'survival')->update(['enabled' => false]);
+        $this->assertSame([], json_decode($manifest->show($request)->getContent(), true)['instances']);
         $this->assertSame(404, $download->show('survival', 2)->getStatusCode());
+    }
+
+    public function testOwnManifestRejectsInvalidArtifactsAndForeignFormats(): void
+    {
+        $this->instance('valid');
+        $this->instance('missing', false);
+        $this->instance('invalid');
+        $this->instance('zip');
+        DB::table(LauncherSchema::PACKS)->where('instance_id', 'invalid')->update(['sha1' => 'bad']);
+        DB::table(LauncherSchema::PACKS)->where('instance_id', 'zip')->update(['format' => 'curseforge-zip']);
+        $manifest = new ManifestController(new LauncherRepository, $this->documents);
+        $data = json_decode($manifest->show(Request::create('https://skin.example.com/api/launcher/manifest'))->getContent(), true);
+        $this->assertSame(['valid'], array_column($data['instances'], 'id'));
     }
 
     public function testPeerFailurePreservesSnapshotAndConditional304Recovers(): void

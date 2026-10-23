@@ -28,9 +28,10 @@ final class LauncherRepository
      *
      * @return array<int, array<string, mixed>>
      */
-    public function rows(): array
+    public function rows(string $brand = 'ysumc'): array
     {
         return $this->instanceQuery()
+            ->where('i.distribution_brand', $brand)
             ->orderBy('i.sort')
             ->orderBy('i.name')
             ->get(self::ROW_COLUMNS)
@@ -55,11 +56,13 @@ final class LauncherRepository
      *
      * @return array{min_version: ?string, latest_version: ?string, force_update: bool}
      */
-    public function settings(): array
+    public function settings(string $brand = 'ysumc'): array
     {
+        $prefix = $brand === 'mutmc' ? 'mutmc.' : '';
         $stored = DB::table(LauncherSchema::SETTINGS)
-            ->whereIn('name', self::SETTING_KEYS)
-            ->pluck('value', 'name');
+            ->whereIn('name', array_map(static fn ($key) => $prefix.$key, self::SETTING_KEYS))
+            ->pluck('value', 'name')
+            ->mapWithKeys(static fn ($value, $key) => [substr($key, strlen($prefix)) => $value]);
 
         $text = static function (string $key) use ($stored): ?string {
             $value = trim((string) ($stored[$key] ?? ''));
@@ -78,7 +81,7 @@ final class LauncherRepository
     /**
      * @param  array{min_version?: ?string, latest_version?: ?string, force_update?: bool}  $values
      */
-    public function saveSettings(array $values): void
+    public function saveSettings(array $values, string $brand = 'ysumc'): void
     {
         $rows = [
             'min_version' => trim((string) ($values['min_version'] ?? '')),
@@ -89,7 +92,7 @@ final class LauncherRepository
 
         foreach ($rows as $name => $value) {
             DB::table(LauncherSchema::SETTINGS)->updateOrInsert(
-                ['name' => $name],
+                ['name' => ($brand === 'mutmc' ? 'mutmc.' : '').$name],
                 ['value' => $value]
             );
         }
@@ -271,6 +274,9 @@ final class LauncherRepository
 
     private const ROW_COLUMNS = [
         'i.instance_id',
+        'i.distribution_brand',
+        'p.format as pack_format',
+        'i.updated_at',
         'i.name',
         'i.description',
         'i.icon_url',

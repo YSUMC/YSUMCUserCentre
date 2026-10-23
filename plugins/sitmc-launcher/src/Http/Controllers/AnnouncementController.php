@@ -3,6 +3,7 @@
 namespace SITMinecraft\Launcher\Http\Controllers;
 
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use SITMinecraft\Launcher\Announcement\AnnouncementBuilder;
 use SITMinecraft\Launcher\Announcement\AnnouncementRepository;
 
@@ -22,10 +23,10 @@ final class AnnouncementController
 {
     public function __construct(private AnnouncementRepository $repository) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $builder = new AnnouncementBuilder();
-        $entries = $builder->build($this->repository->rows());
+        $entries = $builder->build($this->repository->rows($request->route('distributionBrand', 'ysumc')));
 
         return response($builder->encode($entries), 200, [
             'Content-Type' => 'application/json',

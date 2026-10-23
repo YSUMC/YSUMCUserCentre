@@ -53,11 +53,11 @@ release:
 
 instances:
   title: "受管实例"
-  intro: "启动器从这个地址读取实例清单： :path。只有状态为“已发布”的实例才会下发给客户端。"
+  intro: "启动器从这个地址读取实例清单： :path。已启用且整合包完整的实例会发布给本启动器，无需在“对外清单”上架；对外上架只控制公共清单。"
   empty: "还没有实例。先新建一个实例，再上传它的 .mrpack 整合包。"
   create: "新建实例"
-  publish: "旧客户端兼容性"
-  published: "兼容；公开范围见“对外清单”"
+  publish: "本启动器发布状态"
+  published: "已发布到本启动器"
   disabled: "已停用"
   confirm-delete: "删除该实例及其全部整合包？此操作不可撤销。"
 
@@ -179,6 +179,7 @@ packs:
     upload-store-failed: "保存文件失败，请检查 storage/app 是否可写。"
 
 problem:
+  pack-format-unsupported: "本启动器清单需要 mrpack 格式"
   id-empty: "实例标识为空"
   id-too-long: "实例标识超过 64 个字符"
   id-charset: "实例标识含有不允许的字符"

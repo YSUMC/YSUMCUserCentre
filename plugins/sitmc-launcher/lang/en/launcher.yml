@@ -53,11 +53,11 @@ release:
 
 instances:
   title: "Managed instances"
-  intro: "The launcher reads its instance catalog from :path. Only published instances are handed to clients."
+  intro: "The launcher reads :path. Enabled instances with complete packs are published to this launcher independently of the Public catalog listing."
   empty: "No instance yet. Create one and upload its .mrpack pack."
   create: "New instance"
-  publish: "Legacy client compatibility"
-  published: "Compatible; publication is selected in Public catalog"
+  publish: "Launcher publication"
+  published: "Published to this launcher"
   disabled: "Disabled"
   confirm-delete: "Delete this instance and every pack it has? This cannot be undone."
 
@@ -179,6 +179,7 @@ packs:
     upload-store-failed: "Storing the file failed. Check that storage/app is writable."
 
 problem:
+  pack-format-unsupported: "The launcher catalog requires mrpack format"
   id-empty: "the instance id is empty"
   id-too-long: "the instance id is longer than 64 characters"
   id-charset: "the instance id contains unsupported characters"

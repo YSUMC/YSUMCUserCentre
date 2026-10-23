@@ -27,9 +27,10 @@ final class AnnouncementRepository
      *
      * @return array<int, array<string, mixed>>
      */
-    public function rows(): array
+    public function rows(?string $brand = 'ysumc'): array
     {
         return DB::table(LauncherSchema::ANNOUNCEMENTS)
+            ->when($brand !== null, static fn ($query) => $query->where('distribution_brand', $brand))
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->get()

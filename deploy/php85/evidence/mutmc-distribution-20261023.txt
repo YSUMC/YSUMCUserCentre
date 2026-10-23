@@ -1,0 +1,60 @@
+MUTMCL distribution deployment — 2026-10-23
+
+Production: https://skin.ysumc.net
+Application root: /www/wwwroot/ysumcusercentre
+Runtime: PHP 8.5.12, ysumc-php85-fpm.service
+Backup: /var/backups/ysumc/mutmc-distribution-20261023-034530
+
+Published entry points:
+  GET /admin/launcher/mutmc (web, authorize, role:admin)
+  POST /admin/launcher/mutmc/settings (same administrator/CSRF protection)
+  GET /admin/launcher/instances/create?brand=mutmc
+  Existing instance CRUD/upload routes retain administrator protection.
+  GET /api/launcher/mutmc/manifest
+  GET /api/launcher/mutmc/packs/{instanceId}/{revision}
+
+Ten plugin files were deployed from a live snapshot with expected SHA-256
+checks before replacement. Database changes are additive distribution_brand
+columns (default ysumc); existing instance, release, announcement, pack,
+configuration and publication rows were verified unchanged after deployment.
+MUTMCL currently has zero configured instances and returns an empty manifest.
+
+Verification:
+  PHP 8.5 Interop suite, exact staged classes: 39 tests / 216 assertions passed.
+  MUTMCL manifest: HTTP 200; conditional ETag request: HTTP 304.
+  YSUMC manifest: HTTP 200, response content identical to pre-deployment.
+  Existing public interop catalog, announcements and releases: HTTP 200.
+  Missing MUTMCL pack: HTTP 404.
+  Unauthenticated administrator entry: HTTP 302 to /auth/login.
+  Both instance administrator Twig templates compiled on production.
+  FPM service active after reload; table backup permissions 0600.
+
+Scope:
+  This deploy enables MUTMCL pack distribution, administrator entry and
+  separate cloud-map/version-policy settings. It does not publish client
+  installers, create example packs, or deploy the separate MUTMCL
+  announcements/update/CurseForge routes present in the full local source.
+  The shared YSUMC routes retain their existing behavior.
+
+Recovery:
+  plugin-before.tar.gz contains the complete preceding plugin sources;
+  manifest.json identifies the ten replaced files. Restore only those source
+  paths if needed, remove the newly introduced MutmcController.php, clear
+  route/view cache and reload FPM. The additive brand columns can remain.
+  tables-before.json is a server-local recovery backup, not a public artifact.
+
+Incident correction — 2026-10-23:
+  The initial root CLI template check created storage/framework/views/twig
+  as root:root 0700, with root-owned 0600 compiled files. PHP-FPM runs as www;
+  public HTML requests consequently failed with "Unable to create the cache
+  directory" although JSON endpoints passed. Initial verification omitted
+  public HTML requests, so the deployment health result was incomplete.
+  Restored ownership of this template-cache subtree to www:www without
+  altering application data or broadening permissions. Home, login and
+  registration now return HTTP 200; both launcher manifests return HTTP 200;
+  the administrator entry redirects guests to the working login page.
+  Removed root template compilation from state.php. Deployment cache commands
+  and runtime-check.php now run as www, and the deploy script checks the real
+  home/login/register HTTP responses before declaring success. Confirmed no
+  root-owned view cache files remain, no new errors were appended during
+  recovery verification, and the database backup remains root-only 0600.

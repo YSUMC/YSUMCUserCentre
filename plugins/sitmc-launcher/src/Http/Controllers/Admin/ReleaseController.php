@@ -32,7 +32,7 @@ final class ReleaseController
     {
         $releases = [];
 
-        foreach ($this->repository->rows() as $row) {
+        foreach ($this->repository->rows(null) as $row) {
             $row['metadata_problem'] = ReleaseRules::metadataProblem($row);
             $row['artifact_problem'] = ReleaseRules::artifactProblem($row);
             $releases[] = $row;
@@ -78,7 +78,7 @@ final class ReleaseController
             'release' => self::forForm($row),
             'problems' => ReleaseRules::problems($row),
             'nowInput' => Timestamps::inputValue(now()),
-            'dynamicPath' => self::DYNAMIC_PATH,
+            'dynamicPath' => $row['distribution_brand'] === 'mutmc' ? str_replace('/api/launcher/', '/api/launcher/mutmc/', self::DYNAMIC_PATH) : self::DYNAMIC_PATH,
             'status' => session('sitmc_launcher_status'),
         ]);
     }
@@ -88,6 +88,7 @@ final class ReleaseController
         $this->requireRelease($id);
 
         $values = $this->validated($request);
+        $values['distribution_brand'] = $this->requireRelease($id)['distribution_brand'];
         $values['id'] = $id;
         $values['updated_at'] = now();
 
@@ -115,6 +116,7 @@ final class ReleaseController
     private function validated(Request $request): array
     {
         $values = $request->validate([
+            'distribution_brand' => ['nullable', 'in:ysumc,mutmc'],
             'channel' => ['required', 'in:'.implode(',', ReleaseRules::CHANNELS)],
             'version' => [
                 'required', 'string', 'max:64',
@@ -169,6 +171,7 @@ final class ReleaseController
         }
 
         return [
+            'distribution_brand' => $values['distribution_brand'] ?? 'ysumc',
             'channel' => $values['channel'],
             'version' => trim($values['version']),
             'notes' => self::textOrNull($values['notes'] ?? null),

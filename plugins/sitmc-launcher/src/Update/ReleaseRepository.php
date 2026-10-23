@@ -26,9 +26,10 @@ final class ReleaseRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function rows(): array
+    public function rows(?string $brand = 'ysumc'): array
     {
         return DB::table(LauncherSchema::RELEASES)
+            ->when($brand !== null, static fn ($query) => $query->where('distribution_brand', $brand))
             ->orderByDesc('pub_date')
             ->orderByDesc('id')
             ->get()

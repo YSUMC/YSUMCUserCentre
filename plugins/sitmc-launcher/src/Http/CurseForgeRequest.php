@@ -27,8 +27,13 @@ final class CurseForgeRequest
             'v1/fingerprints' => 'fingerprints', 'v1/fingerprints/432' => 'fingerprints'];
         $field = $fields[$path] ?? null;
         if ($method !== 'POST' || $field === null || $query !== [] || $body === null
-            || array_keys($body) !== [$field] || !is_array($body[$field])
+            || !isset($body[$field]) || !is_array($body[$field]) || !array_is_list($body[$field])
             || count($body[$field]) > ($field === 'fingerprints' ? 1000 : 50)) {
+            return false;
+        }
+        $allowedFields = $path === 'v1/mods' ? [$field, 'filterPcOnly'] : [$field];
+        if (array_diff(array_keys($body), $allowedFields) !== []
+            || (array_key_exists('filterPcOnly', $body) && !is_bool($body['filterPcOnly']))) {
             return false;
         }
         foreach ($body[$field] as $id) {

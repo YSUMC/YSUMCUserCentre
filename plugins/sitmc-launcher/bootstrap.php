@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Hook;
+use SITMinecraft\Launcher\Http\Controllers\MutmcController;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Storage;
 use SITMinecraft\Launcher\Announcement\AnnouncementRules;
@@ -80,6 +81,8 @@ return function ($plugin) {
         'icon' => 'fa-cube',
     ]);
 
+    Hook::addMenuItem('admin', 3, ['title' => 'MUTMCL 分发', 'link' => 'admin/launcher/mutmc', 'icon' => 'fa-trophy']);
+
     Hook::addRoute(function (Router $router) {
         // mc-interop v1 unified exit. Same bytes at the canonical well-known
         // path and at the plugin-visible mirror a reverse proxy can forward.
@@ -106,6 +109,23 @@ return function ($plugin) {
         $router->group(
             ['middleware' => ['api', 'throttle:60,1'], 'prefix' => 'api/launcher'],
             function () use ($router) {
+                $router->group(['prefix' => 'mutmc'], function () use ($router) {
+                    $router->match(['GET', 'POST'], 'curseforge/{path}', [CurseForgeController::class, 'mutmc'])
+                        ->where('path', 'v1/[A-Za-z0-9/-]+')->middleware('throttle:30,1');
+                    $router->get('announcements', [PublicAnnouncementController::class, 'index'])->defaults('distributionBrand', 'mutmc');
+                    $router->get('update/latest', [UpdateController::class, 'latest'])->defaults('distributionBrand', 'mutmc');
+                    $router->get('update/versions', [UpdateController::class, 'versions'])->defaults('distributionBrand', 'mutmc');
+                    $router->get('update/releases', [UpdateController::class, 'releases'])->defaults('distributionBrand', 'mutmc');
+                    $router->get('update/{target}/{arch}/{currentVersion}', [UpdateController::class, 'dynamic'])
+                        ->where(['target' => ReleaseRules::PLATFORM_PATTERN, 'arch' => ReleaseRules::PLATFORM_PATTERN, 'currentVersion' => '[0-9A-Za-z._+-]+'])
+                        ->defaults('distributionBrand', 'mutmc');
+                });
+
+                $router->get('mutmc/manifest', [MutmcController::class, 'manifest'])->name('sitmc-launcher.mutmc.manifest');
+                $router->get('mutmc/packs/{instanceId}/{revision}', [MutmcController::class, 'pack'])
+                    ->where(['instanceId' => '[A-Za-z0-9._-]{1,128}', 'revision' => '[0-9]+'])
+                    ->name('sitmc-launcher.mutmc.pack');
+
                 $router->get('manifest', [ManifestController::class, 'show'])
                     ->name('sitmc-launcher.manifest');
 
@@ -162,6 +182,11 @@ return function ($plugin) {
         $router->group(
             ['middleware' => ['web', 'authorize', 'role:admin'], 'prefix' => 'admin/launcher'],
             function () use ($router) {
+                $router->get('mutmc', [InstanceController::class, 'index'])
+                    ->defaults('distributionBrand', 'mutmc')->name('sitmc-launcher.admin.mutmc');
+                $router->post('mutmc/settings', [InstanceController::class, 'saveSettings'])
+                    ->defaults('distributionBrand', 'mutmc')->name('sitmc-launcher.admin.mutmc.settings');
+
                 $router->get('', [InstanceController::class, 'index'])
                     ->name('sitmc-launcher.admin.index');
 

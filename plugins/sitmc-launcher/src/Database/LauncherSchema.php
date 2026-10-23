@@ -100,6 +100,12 @@ final class LauncherSchema
             });
         }
 
+        if (! Schema::hasColumn(self::INSTANCES, 'distribution_brand')) {
+            Schema::table(self::INSTANCES, static function (Blueprint $table): void {
+                $table->string('distribution_brand', 16)->default('ysumc')->index();
+            });
+        }
+
         if (! Schema::hasTable(self::PACKS)) {
             Schema::create(self::PACKS, static function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -159,6 +165,14 @@ final class LauncherSchema
                 $table->index(['channel', 'enabled']);
             });
         }
+        foreach ([self::RELEASES, self::ANNOUNCEMENTS] as $tableName) {
+            if (! Schema::hasColumn($tableName, 'distribution_brand')) {
+                Schema::table($tableName, static function (Blueprint $table): void {
+                    $table->string('distribution_brand', 16)->default('ysumc')->index();
+                });
+            }
+        }
+
         if (! Schema::hasColumn(self::RELEASES, 'sha256')) {
             Schema::table(self::RELEASES, static function (Blueprint $table): void {
                 $table->string('sha256', 64)->nullable();

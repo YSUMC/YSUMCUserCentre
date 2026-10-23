@@ -139,6 +139,7 @@ final class InteropRepository
     public function interopRows(): array
     {
         $instances = DB::table(LauncherSchema::INSTANCES)
+            ->where('distribution_brand', 'ysumc')
             ->orderBy('sort')
             ->orderBy('name')
             ->get();
@@ -217,7 +218,7 @@ final class InteropRepository
     {
         DB::transaction(function () use ($publishedIds): void {
             $publishedIds = array_fill_keys(array_map('strval', $publishedIds), true);
-            $instances = DB::table(LauncherSchema::INSTANCES)->pluck('instance_id');
+            $instances = DB::table(LauncherSchema::INSTANCES)->where('distribution_brand', 'ysumc')->pluck('instance_id');
 
             foreach ($instances as $instanceId) {
                 $instanceId = (string) $instanceId;

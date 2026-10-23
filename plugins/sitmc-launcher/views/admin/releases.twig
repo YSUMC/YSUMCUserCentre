@@ -50,7 +50,7 @@
                     </span>
                   {% endif %}
                 </td>
-                <td><code>{{ row.version }}</code></td>
+                <td><code>{{ row.distribution_brand == 'mutmc' ? '[MUTMCL]' : '[YSUMC]' }} {{ row.version }}</code></td>
                 <td>{{ row.pub_date }}</td>
                 <td>
                   {% if row.target or row.arch %}

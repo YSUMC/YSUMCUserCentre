@@ -16,6 +16,17 @@ final class CurseForgeController
         if (!$token || strlen($token) > 8192 || app(TokenVerifier::class)->verifiedPlayer($token) === null) {
             return $this->failure(401, 'Please sign in to YSUMC again.');
         }
+        return $this->forward($request, $path);
+    }
+
+    /** Public Minecraft catalog only; never send Microsoft credentials to this service. */
+    public function mutmc(Request $request, string $path): Response
+    {
+        return $this->forward($request, $path);
+    }
+
+    private function forward(Request $request, string $path): Response
+    {
         $body = $request->isMethod('POST') ? $request->json()->all() : null;
         if (strlen($request->getContent()) > 65536
             || !CurseForgeRequest::allowed($request->method(), $path, $request->query(), $body)) {

@@ -23,7 +23,7 @@ final class UpdateController
     {
         $builder = new UpdateBuilder();
         $document = $builder->latest(
-            $this->repository->rows(),
+            $this->repository->rows($request->route('distributionBrand', 'ysumc')),
             self::channel($request)
         );
 
@@ -35,13 +35,13 @@ final class UpdateController
     public function versions(Request $request): Response
     {
         $builder = new UpdateBuilder();
-        return self::json($builder->encode($builder->versions($this->repository->rows(), $request->root())));
+        return self::json($builder->encode($builder->versions($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request->root())));
     }
 
-    public function releases(): Response
+    public function releases(Request $request): Response
     {
         $builder = new UpdateBuilder();
-        return self::json($builder->encode($builder->releases($this->repository->rows())));
+        return self::json($builder->encode($builder->releases($this->repository->rows($request->route('distributionBrand', 'ysumc')))));
     }
 
     /**
@@ -60,7 +60,7 @@ final class UpdateController
     ): Response {
         $builder = new UpdateBuilder();
         $document = $builder->dynamic(
-            $this->repository->rows(),
+            $this->repository->rows($request->route('distributionBrand', 'ysumc')),
             $target,
             $arch,
             $currentVersion,

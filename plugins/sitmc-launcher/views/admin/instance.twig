@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block content %}
+  <p><strong>{{ distributionBrand == 'mutmc' ? 'MUTMCL' : 'YSUMC' }} · 整合包分发</strong>（所属启动器创建后不可更改）</p>
   {% if status %}
     <div class="callout callout-success">{{ status }}</div>
   {% endif %}
@@ -47,6 +48,7 @@
             </div>
           {% endif %}
 
+          <input type="hidden" name="distribution_brand" value="{{ distributionBrand }}">
           <div class="form-group">
             <label>{{ trans('sitmc-launcher::launcher.field.id') }}</label>
             <input
@@ -189,7 +191,7 @@
           <button class="btn btn-primary" type="submit">
             {{ trans('sitmc-launcher::launcher.action.save') }}
           </button>
-          <a class="btn btn-default float-right" href="{{ route('sitmc-launcher.admin.index') }}">
+          <a class="btn btn-default float-right" href="{{ route(distributionBrand == 'mutmc' ? 'sitmc-launcher.admin.mutmc' : 'sitmc-launcher.admin.index') }}">
             {{ trans('sitmc-launcher::launcher.action.back') }}
           </a>
         </div>
@@ -308,7 +310,7 @@
             </div>
             <label>Artifact format</label>
             <select class="form-control mb-3" name="format">
-              {% for format in ['mrpack', 'multimc', 'curseforge-zip', 'server-zip', 'raw'] %}
+              {% for format in (distributionBrand == 'mutmc' ? ['mrpack'] : ['mrpack', 'multimc', 'curseforge-zip', 'server-zip', 'raw']) %}
                 <option value="{{ format }}">{{ format }}</option>
               {% endfor %}
             </select>
@@ -346,7 +348,7 @@
             <div class="form-row">
               <div class="form-group col-md-8">
                 <label>{{ trans('sitmc-launcher::launcher.field.sha1') }}</label>
-                <input class="form-control" name="sha1" pattern="[0-9a-fA-F]{40}">
+                <input class="form-control" name="sha1" pattern="[0-9a-fA-F]{40}" {{ distributionBrand == 'mutmc' ? 'required' : '' }}>
                 <small class="form-text text-muted">
                   {{ trans('sitmc-launcher::launcher.field.sha1-hint') }}
                 </small>
@@ -358,11 +360,11 @@
             </div>
           </div>
           <div class="card-body pt-0">
-            <label>SHA-512 (SHA-1 / SHA-512 至少填写一个)</label>
+            <label>{{ distributionBrand == 'mutmc' ? 'SHA-512（可选，SHA-1 必填）' : 'SHA-512 (SHA-1 / SHA-512 至少填写一个)' }}</label>
             <input class="form-control mb-3" name="sha512" pattern="[0-9a-fA-F]{128}">
             <label>Artifact format</label>
             <select class="form-control" name="format">
-              {% for format in ['mrpack', 'multimc', 'curseforge-zip', 'server-zip', 'raw'] %}
+              {% for format in (distributionBrand == 'mutmc' ? ['mrpack'] : ['mrpack', 'multimc', 'curseforge-zip', 'server-zip', 'raw']) %}
                 <option value="{{ format }}">{{ format }}</option>
               {% endfor %}
             </select>

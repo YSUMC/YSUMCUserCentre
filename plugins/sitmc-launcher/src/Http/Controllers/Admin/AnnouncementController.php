@@ -26,7 +26,7 @@ final class AnnouncementController
     {
         $announcements = [];
 
-        foreach ($this->repository->rows() as $row) {
+        foreach ($this->repository->rows(null) as $row) {
             $row['problem'] = AnnouncementRules::publishProblem($row);
             $row['window'] = AnnouncementRules::window($row);
             $announcements[] = $row;
@@ -80,6 +80,7 @@ final class AnnouncementController
         $this->requireAnnouncement($announcementId);
 
         $values = $this->validated($request, $announcementId);
+        $values['distribution_brand'] = $this->requireAnnouncement($announcementId)['distribution_brand'];
         $values['updated_at'] = now();
 
         $this->repository->save($values);
@@ -112,6 +113,7 @@ final class AnnouncementController
         }
 
         $values = $request->validate([
+            'distribution_brand' => ['nullable', 'in:ysumc,mutmc'],
             'announcement_id' => [
                 'required', 'string', 'max:'.AnnouncementRules::MAX_ID_LENGTH,
                 'regex:/^'.AnnouncementRules::ID_PATTERN.'$/', $unique,
@@ -143,6 +145,7 @@ final class AnnouncementController
         }
 
         return [
+            'distribution_brand' => $values['distribution_brand'] ?? 'ysumc',
             'announcement_id' => $values['announcement_id'],
             'title' => $values['title'],
             'summary' => self::textOrNull($values['summary'] ?? null),

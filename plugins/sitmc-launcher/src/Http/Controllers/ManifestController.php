@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use SITMinecraft\Launcher\Manifest\LauncherRepository;
 use SITMinecraft\Launcher\Manifest\ManifestBuilder;
 use SITMinecraft\Launcher\Interop\SiteDocumentService;
+use SITMinecraft\Launcher\Interop\InteropRules;
 
 /**
  * The public endpoint the launcher polls for its instance catalog.
@@ -21,22 +22,13 @@ final class ManifestController
 
     public function show(Request $request): Response
     {
-        $canonical = $this->documents->document()['document'];
-        $builder = new ManifestBuilder('https://'.$canonical['site']['domain']);
+        $builder = new ManifestBuilder('https://'.$this->documents->domain());
         $settings = $this->repository->settings();
-
-        $allowed = [];
-        foreach ($canonical['packs'] as $entry) {
-            if (! isset($entry['source']) && ($entry['artifact']['format'] ?? null) === 'mrpack' && isset($entry['artifact']['sha1'])) $allowed[$entry['id']] = $entry;
-        }
-
-        $rows = [];
-        foreach ($this->repository->rows() as $row) {
-            $entry = $allowed[$row['id']] ?? null;
-            if ($entry === null) continue;
-            $rows[] = array_replace($row, ['game_version' => $entry['gameVersion'], 'loader' => $entry['loader'],
-                'loader_version' => $entry['loaderVersion'] ?? null, 'pack_url' => $entry['artifact']['url'],
-                'pack_sha1' => $entry['artifact']['sha1'], 'pack_size' => $entry['artifact']['size']]);
+        // Own-launcher publication is independent of public federation listing.
+        $rows = $this->repository->rows();
+        $publishedAt = 0;
+        foreach ($rows as $row) {
+            $publishedAt = max($publishedAt, strtotime((string) ($row['updated_at'] ?? '')) ?: 0);
         }
 
         $document = $builder->build(
@@ -44,13 +36,13 @@ final class ManifestController
             $settings['min_version'],
             $settings['latest_version'],
             $settings['force_update'],
-            strtotime($canonical['updatedAt'])
+            $publishedAt
         );
 
         $document['cloud_map_url'] = $settings['cloud_map_url'];
         $etag = $builder->etag($document);
 
-        if (trim((string) $request->header('If-None-Match')) === $etag) {
+        if (InteropRules::ifNoneMatch($request->header('If-None-Match'), $etag)) {
             return response('', 304, ['ETag' => $etag]);
         }
 

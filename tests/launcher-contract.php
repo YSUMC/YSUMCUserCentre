@@ -32,6 +32,16 @@ check(!CurseForgeRequest::allowed('GET', 'v1/mods/search', ['apiKey' => null], n
 check(!CurseForgeRequest::allowed('GET', 'v1/mods/search', ['searchFilter' => ['x']], null), 'CurseForge array search rejected');
 check(CurseForgeRequest::allowed('GET', 'v1/mods/306612/files/123/download-url', [], null), 'CurseForge official download URL lookup allowed');
 check(CurseForgeRequest::allowed('POST', 'v1/mods', [], ['modIds' => [306612]]), 'CurseForge read-only batch allowed');
+foreach ([true, false] as $filter) {
+    check(CurseForgeRequest::allowed('POST', 'v1/mods', [], ['modIds' => [1489886], 'filterPcOnly' => $filter]), 'CurseForge launcher project details with platform filter allowed');
+    check(CurseForgeRequest::allowed('POST', 'v1/mods', [], ['filterPcOnly' => $filter, 'modIds' => [1489886]]), 'CurseForge JSON field order does not affect validation');
+}
+foreach (['true', 1, null, []] as $invalidFilter) {
+    check(!CurseForgeRequest::allowed('POST', 'v1/mods', [], ['modIds' => [1489886], 'filterPcOnly' => $invalidFilter]), 'CurseForge invalid platform filter rejected');
+}
+check(!CurseForgeRequest::allowed('POST', 'v1/mods/files', [], ['fileIds' => [123], 'filterPcOnly' => true]), 'CurseForge platform filter restricted to project batch');
+check(!CurseForgeRequest::allowed('POST', 'v1/mods', [], ['modIds' => [1489886], 'filterPcOnly' => true, 'apiKey' => 'untrusted']), 'CurseForge unknown batch fields rejected');
+check(!CurseForgeRequest::allowed('POST', 'v1/mods', [], ['modIds' => ['item' => 1489886]]), 'CurseForge ID objects rejected');
 check(CurseForgeRequest::allowed('POST', 'v1/fingerprints/432', [], ['fingerprints' => [4294967295]]), 'CurseForge unsigned fingerprints allowed');
 foreach (['https://example.com', 'v1/../admin', 'v1/mods/1/files/1/download-url?key=x', 'v1/categories/../../mods', 'v1/users/me'] as $invalid) {
     check(!CurseForgeRequest::allowed('GET', $invalid, [], null), 'CurseForge arbitrary path rejected');
@@ -101,3 +111,9 @@ check($catalog['versions'][0]['artifacts'][0]['relative_path'] === 'releases/YSU
 foreach ([['enabled' => false], ['channel' => 'beta'], ['signature' => ''], ['sha256' => 'bad'], ['url' => 'https://other.example/file.exe'], ['url' => 'https://skin.ysumc.net:8443/file.exe'], ['arch' => null]] as $invalid) {
     check($builder->versions([array_replace($artifact, $invalid)], 'https://skin.ysumc.net')['versions'] === [], 'incomplete or external release omitted from catalog');
 }
+
+$mutmcBuilder = new ManifestBuilder('https://skin.ysumc.net', '/api/launcher/mutmc/packs');
+$mutmc = $mutmcBuilder->build([array_replace($row, ['pack_url' => null])], publishedAt: 0);
+check($mutmc['instances'][0]['pack']['url'] === 'https://skin.ysumc.net/api/launcher/mutmc/packs/survival/'.$row['revision'], 'MUTMC uploads resolve through the isolated download route');
+check($mutmcBuilder->build([], publishedAt: 0)['instances'] === [], 'MUTMC has no placeholder packs before publishing');
+check($mutmcBuilder->build([array_replace($row, ['enabled' => false])], publishedAt: 0)['instances'] === [], 'MUTMC disabled packs are withheld');

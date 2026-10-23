@@ -16,7 +16,7 @@ final class ManifestBuilder
      * @param  string  $baseUrl  absolute site URL without a trailing slash, used to
      *                           build pack download links for rows without one
      */
-    public function __construct(private string $baseUrl)
+    public function __construct(private string $baseUrl, private string $packPrefix = '/api/launcher/packs')
     {
         $this->baseUrl = rtrim($baseUrl, '/');
     }
@@ -98,8 +98,9 @@ final class ManifestBuilder
         }
 
         return sprintf(
-            '%s/api/launcher/packs/%s/%d',
+            '%s%s/%s/%d',
             $this->baseUrl,
+            $this->packPrefix,
             rawurlencode((string) ($row['id'] ?? '')),
             (int) ($row['revision'] ?? 0)
         );

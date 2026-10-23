@@ -6,6 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use SITMinecraft\Launcher\Http\PackStreamResponse;
 use SITMinecraft\Launcher\Manifest\LauncherRepository;
+use SITMinecraft\Launcher\Manifest\ManifestBuilder;
 use SITMinecraft\Launcher\Manifest\PackStore;
 use SITMinecraft\Launcher\Interop\SiteDocumentService;
 
@@ -27,10 +28,28 @@ final class PackController
     public function show(string $instanceId, int $revision): Response|RedirectResponse
     {
         $published = null;
-        foreach ($this->documents->document()['document']['packs'] as $entry) {
-            if (! isset($entry['source']) && $entry['id'] === $instanceId && ($entry['revision'] ?? null) === $revision && isset($entry['artifact'])) $published = $entry;
+        $row = $this->repository->row($instanceId);
+        if ($row !== null && ($row['distribution_brand'] ?? 'ysumc') === 'ysumc') {
+            $own = (new ManifestBuilder('https://'.$this->documents->domain()))->build([$row], publishedAt: 0);
+            $entry = $own['instances'][0] ?? null;
+            if ($entry !== null && $entry['revision'] === $revision) {
+                $published = ['artifact' => [
+                    'format' => $entry['pack']['kind'], 'url' => $entry['pack']['url'],
+                ]];
+            }
+        }
+        if ($published === null) {
+            foreach ($this->documents->document()['document']['packs'] as $entry) {
+                if (! isset($entry['source']) && $entry['id'] === $instanceId && ($entry['revision'] ?? null) === $revision && isset($entry['artifact'])) $published = $entry;
+            }
         }
         if ($published === null) return new Response('{"message":"Pack not found."}', 404, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);
+        return $this->deliver($instanceId, $revision, $published['artifact']);
+    }
+
+    /** Called only after the owning catalog verifies publication and revision. */
+    public function deliver(string $instanceId, int $revision, array $artifact): Response|RedirectResponse
+    {
         $pack = $this->repository->pack($instanceId, $revision);
 
         if ($pack === null) {
@@ -40,11 +59,11 @@ final class PackController
         $external = trim((string) ($pack['url'] ?? ''));
 
         if ($external !== '') {
-            return redirect()->away($published['artifact']['url']);
+            return redirect()->away($artifact['url']);
         }
 
         $diskPath = trim((string) ($pack['disk_path'] ?? ''));
-        $extension = match ($published['artifact']['format']) { 'mrpack' => 'mrpack', 'raw' => 'bin', default => 'zip' };
+        $extension = match ($artifact['format']) { 'mrpack' => 'mrpack', 'raw' => 'bin', default => 'zip' };
         $name = sprintf('%s-%d.%s', $instanceId, $revision, $extension);
 
         if ($diskPath === '') {
