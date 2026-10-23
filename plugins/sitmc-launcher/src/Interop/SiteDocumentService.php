@@ -3,7 +3,7 @@
 namespace SITMinecraft\Launcher\Interop;
 
 /**
- * Assembles the unified exit for a request.
+ * Publishes own entries separately from the server-aggregated friends catalog.
  *
  * The public well-known endpoint and the admin preview both go through this
  * service, so the document the administrator sees is the one a launcher
@@ -42,9 +42,20 @@ final class SiteDocumentService
      */
     public function document(?string $requestRoot = null): array
     {
+        return $this->buildDocument($requestRoot, false);
+    }
+
+    /** Compatibility projection for launchers predating the friends endpoint. */
+    public function legacyDocument(?string $requestRoot = null): array
+    {
+        return $this->buildDocument($requestRoot, true);
+    }
+
+    private function buildDocument(?string $requestRoot, bool $includePeers): array
+    {
         $settings = $this->repository->settings();
         $domain = $this->domain($requestRoot);
-        $peer = $this->aggregator->peerDocuments();
+        $peer = $includePeers ? $this->aggregator->peerDocuments() : ['documents' => [], 'diagnostics' => []];
 
         $builder = new SiteDocumentBuilder($domain);
 
@@ -62,7 +73,7 @@ final class SiteDocumentService
 
         $document['packs'] = array_values(array_filter($document['packs'], static fn ($entry) =>
             ! isset($entry['source']) || ($entry['source']['domain'] !== $domain && $entry['source']['siteId'] !== $settings['site_id'])));
-        $document = $this->repository->stampDocument($document);
+        $document = $this->repository->stampDocument($document, $includePeers);
 
         return [
             'document' => $document,
@@ -113,6 +124,9 @@ final class SiteDocumentService
             $siteId = (string) ($source['siteId'] ?? '');
             $row = $bySite[$siteId] ?? null;
             $sourceDomain = (string) ($source['domain'] ?? '');
+            if ($siteId === $settings['site_id'] || $sourceDomain === $domain) {
+                continue;
+            }
             $manifestUrl = $row['manifest_url'] ?? null;
 
             if (! is_string($manifestUrl) || trim($manifestUrl) === '') {
@@ -156,6 +170,7 @@ final class SiteDocumentService
                     'kind' => (string) ($artifact['format'] ?? 'mrpack'),
                     'url' => (string) ($artifact['url'] ?? ''),
                     'sha1' => $artifact['sha1'] ?? null,
+                    'sha512' => $artifact['sha512'] ?? null,
                     'size' => isset($artifact['size']) ? (int) $artifact['size'] : null,
                 ],
                 'server' => [

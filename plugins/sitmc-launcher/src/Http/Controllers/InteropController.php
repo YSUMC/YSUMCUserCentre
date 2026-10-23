@@ -26,13 +26,20 @@ final class InteropController
 
     public function site(Request $request): Response
     {
-        $result = $this->documents->document($request->root());
+        // Old desktop builds only read this URL. Peer crawlers and split-aware
+        // launchers receive the canonical own-only document at both mirrors.
+        $legacy = $request->header('X-YSUMC-Catalog') !== 'split-v1'
+            && preg_match('~^ysumc/launcher/[0-9][^\s]*(?: \([^\r\n()]+\))?$~iD', (string) $request->userAgent()) === 1;
+        $result = $legacy
+            ? $this->documents->legacyDocument($request->root())
+            : $this->documents->document($request->root());
 
         if (! InteropRules::publicHost($result['domain'])) {
             return response('{"message":"Configure a public site domain before publishing."}', 503, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);
         }
 
-        return $this->respond($request, $result['document']);
+        return $this->respond($request, $result['document'])
+            ->header('Vary', 'User-Agent, X-YSUMC-Catalog');
     }
 
     public function friends(Request $request): Response

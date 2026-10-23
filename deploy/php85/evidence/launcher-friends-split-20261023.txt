@@ -1,0 +1,80 @@
+YSUMC own-site/friends split and legacy launcher compatibility
+Date: 2026-10-23
+Skin branch: codex/launcher-friends-split
+Launcher checkout branch: codex/launcher-friends-split
+SIT upstream: cf207bb4ec9d03104a0e8f8c0a4ec0276141def4
+
+Server behavior
+- Default /.well-known/mc-interop-v1.json and /api/launcher/interop/v1/site
+  contain only the site's published own entries. Peer metadata is retained.
+- /api/launcher/friends and /api/launcher/interop/v1/friends contain direct
+  friends grouped by source. SHA-512 is now preserved alongside SHA-1.
+- Existing ysumc/launcher/<version> (<os>) User-Agents without the split-v1
+  capability still receive the old aggregated document on either site URL.
+- New launchers send X-YSUMC-Catalog: split-v1. Both 200 and 304 site responses
+  vary on User-Agent and X-YSUMC-Catalog. Nginx may also add Accept-Encoding.
+- Own and legacy document timestamps use separate derived settings; legacy
+  retains interop_document_state and own uses interop_site_document_state.
+- Friends are never fetched recursively by the desktop. Server synchronization,
+  anonymous reads, namespace protections and existing MUTMCL routing remain.
+
+Launcher implementation
+- Independently fetches and validates site and friends, each at most 1 MiB,
+  with separate persistent raw snapshots/ETags in managed_manifest_cache.
+- Converts grouped friend metadata back into existing source fields, preserving
+  namespaced IDs, SHA-512-only packs, stale flags and server-only instances.
+- Friends replace any legacy source entries during rolling deployment so IDs
+  do not duplicate. A valid empty friends list withdraws those entries.
+- Any site/friends/home fetch failure uses the outer complete offline snapshot;
+  failed requests do not retire friends or authorize fresh installs/updates.
+- The original own manifest still supplies official publications and policy.
+- No migration, version bump, announcement, installer or update release created.
+
+Validation
+- PHP 8.5.12: 29 targeted InteropTest tests, 181 assertions, passed in an
+  isolated /tmp copy as www. Test harness uses only in-memory SQLite and never
+  loads .env. Temporary copy removed after verification.
+- Rust: cargo test --package theseus --lib api::managed::interop::tests
+  passed: 17 tests, 0 failed. Used the existing target directory.
+- Windows JDK Unix-domain temporary sockets initially prevented Gradle startup.
+  For this test process only, JAVA_TOOL_OPTIONS set jdk.net.unixdomain.tmpdir
+  to the existing workspace target/tmp directory. No persistent Java/Cargo
+  configuration changed. Library test build completed with existing warnings.
+- Scoped rustfmt checks passed. Whole-workspace cargo fmt --all --check reports
+  formatting in preexisting unrelated modifications; those files were preserved.
+- Existing frontend grouping helper, using live friends data, kept 1 own and
+  2 SIT entries in the appropriate groups. This is not a desktop install/login
+  or actual multiplayer session test.
+- Production logs confirmed old User-Agents 1.0.4 and 1.0.5. Both profiles and
+  split-v1 requests were verified against live HTTPS after deployment.
+- Own catalog: survival. Friends: sitmc:survival, sitmc:survival-low.
+- Legacy catalog still includes all three IDs; friends/legacy game versions,
+  revision, URLs, SHA-1, SHA-512 and sizes agree.
+- Canonical/mirror bytes agree; separate friends aliases agree; matching ETags
+  return 304; cross-variant old ETag with split-v1 returns 200.
+- Existing YSUMC and MUTMCL manifests remained byte-identical. Instance, pack,
+  settings, announcement and release configuration remained unchanged, excluding
+  the derived document-stamp settings. PHP-FPM and Janus remain active.
+- No root-owned compiled view files were created.
+
+Production delivery and rollback
+- Five plugin files deployed; source hashes matched the candidate manifest.
+- Final private backup: /var/backups/ysumc/launcher-friends-20261023-1623
+- Includes original/, plugin-before.tar.gz, manifest.json, candidate/,
+  launcher-data-before.json (private), before.json, after.json, conditional
+  responses, deployed.json and deploy.py.
+- Hash-guarded rollback:
+  python3 /var/backups/ysumc/launcher-friends-20261023-1623/deploy.py rollback
+- Two earlier attempts automatically rolled back when validation compared Vary
+  strings too strictly: Nginx adds Accept-Encoding to 200 but not necessarily
+  304. Final validation requires the catalog Vary fields on both statuses.
+- FPM was gracefully reloaded; PHP version, Nginx and Janus were not replaced.
+
+Preservation of existing launcher work
+- Launcher already had extensive tracked and untracked work, including the
+  interop module itself. Existing changes were not swept into a new commit.
+- Only interop.rs, interop/tests.rs, ysumc.rs and docs/launcher-protocol.md were
+  edited for this task. Unrelated tracked diffs were compared and unchanged.
+- Before-image archive and task-only incremental patch are in the parent
+  artifacts/launcher-friends-20261023 directory. Launcher changes remain in
+  that independent branch's working tree; no new binary was published.

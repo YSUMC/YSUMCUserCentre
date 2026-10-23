@@ -247,11 +247,12 @@ final class InteropRepository
     }
 
     /** A content-derived timestamp covers deletion, stale transitions and site renames. */
-    public function stampDocument(array $document): array
+    public function stampDocument(array $document, bool $legacy = false): array
     {
         unset($document['updatedAt']);
         $digest = hash('sha256', InteropRules::encode($document));
-        $name = 'interop_document_state';
+        // Preserve the existing legacy timestamp; variants must not invalidate each other.
+        $name = $legacy ? 'interop_document_state' : 'interop_site_document_state';
         DB::table(LauncherSchema::SETTINGS)->insertOrIgnore(['name' => $name, 'value' => '{}']);
         return DB::transaction(function () use ($document, $digest, $name): array {
             $row = DB::table(LauncherSchema::SETTINGS)->where('name', $name)->lockForUpdate()->first();

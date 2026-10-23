@@ -2,15 +2,15 @@
 
 ## mc-interop v1（1.3.2）
 
-本分支基于 `learning/sitmc-launcher` 的 SIT 1.3.0，此前同步到上游提交 `7fcf275`；2026-10-23 已审查 `cf207bb`，增补其中三个兼容修复，按 [mc-interop v1 协议](launcher-interop-protocol-v1.md) 实现。已保留 YSUMC 的用户信息地址、更新接口、角色所有权和皮肤上传安全修复。
+本分支基于 `learning/sitmc-launcher` 的 SIT 1.3.0，此前同步到上游提交 `7fcf275`；2026-10-23 已审查 `cf207bb`，增补其中的互采修复及主清单拆分，按 [mc-interop v1 协议](launcher-interop-protocol-v1.md) 实现。已保留 YSUMC 的用户信息地址、更新接口、角色所有权和皮肤上传安全修复。
 
-1.3.2 同步友站实例 ID 命名空间：本站 `survival` 不变，友站实例使用 `sitmc:survival`，不同站点的同名实例可以同时展示。主清单与 `/api/launcher/friends` 使用相同 ID；同一来源的重复 ID 保留第一条并记录诊断。带 `source` 的转引条目不再二次采入，避免回环；本站实例和站点 ID 仍不允许冒号。此更新在独立分支 `codex/sit-launcher-sync-20261022` 完成，按用户要求未运行回归测试，等待用户核验。
+1.3.2 同步友站实例 ID 命名空间：本站 `survival` 不变，友站实例使用 `sitmc:survival`，不同站点的同名实例可以同时展示。旧客户端兼容投影与 `/api/launcher/friends` 使用相同友站 ID；同一来源的重复 ID 保留第一条并记录诊断。带 `source` 的转引条目不再二次采入，避免回环；本站实例和站点 ID 仍不允许冒号。此更新在独立分支 `codex/sit-launcher-sync-20261022` 完成，按用户要求未运行回归测试，等待用户核验。
 
 | 端点 | 行为 |
 | --- | --- |
-| `GET /.well-known/mc-interop-v1.json` | 标准匿名出口：`site / packs / peers / updatedAt` |
+| `GET /.well-known/mc-interop-v1.json` | 标准匿名出口：`site / packs / peers / updatedAt`，packs 只含本站 |
 | `GET /api/launcher/interop/v1/site` | 同一份文档的反向代理入口 |
-| `GET /api/launcher/friends` | SIT 旧客户端兼容目录，按友站分组 |
+| `GET /api/launcher/friends` | 独立友站目录，YSUMC 新客户端与 SIT 按来源分组读取 |
 | `POST /api/launcher/interop/v1/refresh` | 后台同步；必须使用 `X-Interop-Token` 请求头，不接受 URL token |
 | `GET /admin/launcher/interop` | 站点身份、发布选择、友站列表、诊断及定时同步命令 |
 
@@ -42,7 +42,7 @@
 
 审查范围：`7fcf275..cf207bb`。已增补 `e5037e5`（禁止添加本站域名，包括 APP_URL 回退域名）、`e2da316`（well-known 返回 403/404 时请求同源 `/api/launcher/interop/v1/site`）、`f8a0bd8`（跳过带 source 的转引条目）。备用请求继续执行本地已有的公网 DNS 固定、TLS 校验、禁用重定向、超时和大小限制。
 
-暂缓 `cf207bb` 的“SiteDocument 只含本站”行为变更：当前 YSUMC 客户端 `api/managed/interop.rs::fetch_catalog()` 读取 well-known 聚合内容和本站 manifest，尚未读取独立 friends 接口。直接切换会使已有客户端丢失友站实例；需先完成客户端读取 friends 的迁移和发布。本地协议文档因此仍保留当前兼容契约。MUTMCL 始终使用独立的 manifest，不参与该聚合。
+已同步 `cf207bb` 的“SiteDocument 只含本站”行为。YSUMC 新客户端读取本站 manifest、own-only 主清单和独立 friends；friends 的 SHA-512 字段已补齐。旧 `ysumc/launcher/<version> (<os>)` 且未发送 `X-YSUMC-Catalog: split-v1` 的请求仍获取原聚合投影；标准采集请求获取本站清单。`Vary: User-Agent, X-YSUMC-Catalog` 隔离共享缓存，两个投影各自维护稳定时间戳。MUTMCL 仍只使用自己的 manifest。
 
 ## 安装
 

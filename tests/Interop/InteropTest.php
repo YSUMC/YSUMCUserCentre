@@ -51,10 +51,11 @@ final class InteropTest extends \Tests\Security\TestCase
             'sha512' => str_repeat('b', 128), 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    private function response(?string $etag = null): \Illuminate\Http\Response
+    private function response(?string $etag = null, bool $legacy = false): \Illuminate\Http\Response
     {
         $request = Request::create('https://skin.example.com/.well-known/mc-interop-v1.json');
         if ($etag !== null) $request->headers->set('If-None-Match', $etag);
+        if ($legacy) $request->headers->set('User-Agent', 'ysumc/launcher/1.0.6 (windows)');
         return (new InteropController($this->documents, $this->repository, $this->aggregator))->site($request);
     }
 
@@ -72,6 +73,66 @@ final class InteropTest extends \Tests\Security\TestCase
     private function peer(): void
     {
         $this->repository->savePeer(['site_id' => 'sitmc', 'origin' => 'https://peer.example.com', 'enabled' => true]);
+    }
+
+    public function testCanonicalOwnOnlyFriendsAndLegacyViewsRemainConsistent(): void
+    {
+        $this->instance();
+        $this->repository->savePublications(['survival']);
+        $this->peer();
+        $foreign = $this->foreign('survival');
+        $foreign['revision'] = 12;
+        $foreign['artifact'] = ['format' => 'mrpack', 'url' => 'https://peer.example.com/pack.mrpack',
+            'size' => 123, 'sha512' => str_repeat('b', 128)];
+        $forwarded = $this->foreign('third:pack');
+        $forwarded['source'] = ['siteId' => 'third', 'domain' => 'third.example.com'];
+        $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', '"peer"',
+            InteropRules::encode($this->peerDocument([$foreign, $this->foreign('server'), $forwarded])), time() - 301);
+        $controller = new InteropController($this->documents, $this->repository, $this->aggregator);
+        $canonical = $this->response();
+        $own = json_decode($canonical->getContent(), true);
+        $this->assertSame(['survival'], array_column($own['packs'], 'id'));
+        $this->assertArrayNotHasKey('source', $own['packs'][0]);
+        $legacy = $this->response(legacy: true);
+        $old = json_decode($legacy->getContent(), true);
+        $this->assertSame(['survival', 'sitmc:server', 'sitmc:survival'], array_column($old['packs'], 'id'));
+        $friends = $this->documents->friends()['document']['sites'];
+        $this->assertCount(1, $friends);
+        $this->assertTrue($friends[0]['stale']);
+        $this->assertSame(['sitmc:server', 'sitmc:survival'], array_column($friends[0]['instances'], 'id'));
+        $this->assertNull($friends[0]['instances'][0]['pack']);
+        $this->assertNull($friends[0]['instances'][1]['pack']['sha1']);
+        $this->assertSame(str_repeat('b', 128), $friends[0]['instances'][1]['pack']['sha512']);
+        foreach (['/.well-known/mc-interop-v1.json', '/api/launcher/interop/v1/site'] as $path) {
+            $request = Request::create('https://skin.example.com'.$path);
+            $request->headers->set('User-Agent', 'ysumc/launcher/1.0.6 (windows)');
+            $this->assertSame($legacy->getContent(), $controller->site($request)->getContent());
+            $request->headers->set('X-YSUMC-Catalog', 'split-v1');
+            $request->headers->set('If-None-Match', $legacy->headers->get('ETag'));
+            $split = $controller->site($request);
+            $this->assertSame(200, $split->status());
+            $this->assertSame($canonical->getContent(), $split->getContent());
+            $this->assertSame('User-Agent, X-YSUMC-Catalog', $split->headers->get('Vary'));
+        }
+        $cached = $this->response($canonical->headers->get('ETag'));
+        $this->assertSame(304, $cached->status());
+        $this->assertSame('User-Agent, X-YSUMC-Catalog', $cached->headers->get('Vary'));
+        $this->assertSame(304, $this->response($legacy->headers->get('ETag'), true)->status());
+        $this->assertSame([], $this->transport->calls);
+    }
+
+    public function testPeerChangeDoesNotInvalidateCanonicalOwnCatalog(): void
+    {
+        $this->instance(); $this->repository->savePublications(['survival']); $this->peer();
+        $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', null,
+            InteropRules::encode($this->peerDocument([$this->foreign()])));
+        $own = $this->response();
+        $legacy = $this->response(legacy: true);
+        $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', null,
+            InteropRules::encode($this->peerDocument([])));
+        $this->assertSame([], $this->documents->friends()['document']['sites']);
+        $this->assertSame(304, $this->response($own->headers->get('ETag'))->status());
+        $this->assertSame(200, $this->response($legacy->headers->get('ETag'), true)->status());
     }
 
     public function testDefaultsDoNotPublishAndPublicReadsDoNotFetch(): void
@@ -233,16 +294,16 @@ final class InteropTest extends \Tests\Security\TestCase
         $document = $this->peerDocument([$this->foreign()]);
         $this->transport->queue[] = FakeTransport::ok($document);
         $this->assertSame(1, $this->aggregator->sync()['ok']);
-        $first = $this->response();
+        $first = $this->response(legacy: true);
         $this->transport->queue = array_fill(0, 4, new \RuntimeException('offline'));
         $this->assertSame(1, $this->aggregator->sync()['failed']);
-        $failed = json_decode($this->response()->getContent(), true);
+        $failed = json_decode($this->response(legacy: true)->getContent(), true);
         $this->assertCount(1, $failed['packs']);
         $this->assertTrue($failed['packs'][0]['source']['stale']);
         $this->assertNotSame(json_decode($first->getContent(), true)['updatedAt'], $failed['updatedAt']);
         $this->transport->queue[] = ['status' => 304, 'headers' => [], 'body' => ''];
         $this->assertSame(1, $this->aggregator->sync()['ok']);
-        $recovered = $this->documents->document()['document']['packs'][0];
+        $recovered = $this->documents->legacyDocument()['document']['packs'][0];
         $this->assertArrayNotHasKey('stale', $recovered['source']);
         $this->assertSame('"peer-v1"', $this->transport->calls[array_key_last($this->transport->calls)]['etag']);
     }
@@ -251,7 +312,7 @@ final class InteropTest extends \Tests\Security\TestCase
     {
         $this->peer();
         $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', '"old"', InteropRules::encode($this->peerDocument([$this->foreign()])), time() - 301);
-        $this->assertTrue($this->documents->document()['document']['packs'][0]['source']['stale']);
+        $this->assertTrue($this->documents->legacyDocument()['document']['packs'][0]['source']['stale']);
     }
 
     public function testMalformedPeerAndChangedIdentityKeepLastGoodSnapshot(): void
@@ -262,7 +323,7 @@ final class InteropTest extends \Tests\Security\TestCase
         foreach ([['packs' => []], array_replace_recursive($this->peerDocument([$this->foreign()]), ['site' => ['domain' => 'other.example.com']]), $this->peerDocument([array_replace($this->foreign(), ['loader' => 'fabirc'])])] as $bad) {
             $this->transport->queue[] = FakeTransport::ok($bad);
             $this->assertSame(1, $this->aggregator->sync()['failed']);
-            $this->assertCount(1, $this->documents->document()['document']['packs']);
+            $this->assertCount(1, $this->documents->legacyDocument()['document']['packs']);
         }
     }
 
@@ -273,7 +334,7 @@ final class InteropTest extends \Tests\Security\TestCase
         $foreign = $this->foreign('third:foreign');
         $foreign['source'] = ['siteId' => 'third', 'domain' => 'third.example.com', 'stale' => true];
         $this->repository->storeSnapshot('sitmc', 'https://peer.example.com', null, InteropRules::encode($this->peerDocument([$this->foreign('private'), $foreign, $foreign])));
-        $result = $this->documents->document();
+        $result = $this->documents->legacyDocument();
         $this->assertSame(['sitmc:private'], array_column($result['document']['packs'], 'id'));
         $this->assertSame('sitmc', $result['document']['packs'][0]['source']['siteId']);
     }
