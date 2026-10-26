@@ -127,6 +127,20 @@ final class LauncherAudienceTest extends TestCase
         $this->assertHttpStatus(403, fn () => $this->memberships->assign($admin, $this->member, 'president', null));
     }
 
+    public function testEmptyFastCgiAuthorizationRemainsAnAnonymousRequest(): void
+    {
+        foreach (['', '   '] as $header) {
+            $request = $this->request();
+            $request->headers->set('Authorization', $header);
+            $rows = [['id' => 'public'], ['id' => 'restricted', 'audience_roles' => '["normal"]']];
+            $this->assertSame([['id' => 'public']], $this->audience->filter($rows, $request));
+            $this->assertHttpStatus(401, fn () => $this->audience->identity($request, true));
+        }
+        $request = $this->request();
+        $request->headers->set('Authorization', 'Bearer ');
+        $this->assertHttpStatus(401, fn () => $this->audience->identity($request));
+    }
+
     public function testIdentityRequiresVerifiedTokenAndReadsCurrentDatabaseMembership(): void
     {
         $this->assertHttpStatus(401, fn () => $this->audience->identity($this->request(), true));

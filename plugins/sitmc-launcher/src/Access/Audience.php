@@ -22,7 +22,8 @@ final class Audience
             return $identity;
         }
         $header = $request->header('Authorization');
-        if ($header === null) {
+        // FastCGI may forward an absent Authorization header as an empty string.
+        if ($header === null || (is_string($header) && trim($header) === '')) {
             abort_if($required, 401, '请先登录皮肤站账号。');
             $request->attributes->set(self::REQUEST_IDENTITY, null);
             return null;
