@@ -4,15 +4,18 @@ namespace Tests\Interop;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use SITMinecraft\Launcher\Database\LauncherSchema;
-use SITMinecraft\Launcher\Http\Controllers\Admin\InstanceController;
+use MUTMC\Launcher\Database\LauncherSchema;
+use MUTMC\Launcher\Http\Controllers\Admin\InstanceController;
 use SITMinecraft\Launcher\Http\Controllers\ManifestController;
-use SITMinecraft\Launcher\Http\Controllers\MutmcController;
+use MUTMC\Launcher\Http\Controllers\MutmcController;
+use MUTMC\Launcher\Http\Controllers\PackController as MutmcPackController;
+use MUTMC\Launcher\Manifest\LauncherRepository as MutmcRepository;
+use MUTMC\Launcher\Manifest\PackStore as MutmcPackStore;
 use SITMinecraft\Launcher\Http\Controllers\PackController;
 use SITMinecraft\Launcher\Interop\InteropRepository;
 use SITMinecraft\Launcher\Interop\PeerAggregator;
 use SITMinecraft\Launcher\Interop\PeerFetcher;
-use SITMinecraft\Launcher\Interop\PublicAddress;
+use MUTMC\Launcher\Interop\PublicAddress;
 use SITMinecraft\Launcher\Interop\SiteDocumentService;
 use SITMinecraft\Launcher\Manifest\LauncherRepository;
 use SITMinecraft\Launcher\Manifest\PackStore;
@@ -20,6 +23,7 @@ use SITMinecraft\Launcher\Manifest\PackStore;
 final class MutmcDistributionTest extends \Tests\Security\TestCase
 {
     private LauncherRepository $catalog;
+    private MutmcRepository $mutmcCatalog;
     private InteropRepository $interop;
     private SiteDocumentService $documents;
     private PackController $packs;
@@ -31,6 +35,7 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
         parent::setUp();
         $this->app['config']->set('app.url', 'https://skin.example.com');
         $this->catalog = new LauncherRepository;
+        $this->mutmcCatalog = new MutmcRepository;
         $this->interop = new InteropRepository;
         $this->interop->saveSettings(['site_id' => 'ysumc', 'site_domain' => 'skin.example.com']);
         $this->documents = new SiteDocumentService($this->interop, new PeerAggregator($this->interop, new PeerFetcher));
@@ -39,12 +44,17 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
         ), new \League\Flysystem\Local\LocalFilesystemAdapter(storage_path('app')));
         $store = new PackStore($disk);
         $this->packs = new PackController($this->catalog, $store, $this->documents);
-        $this->mutmc = new MutmcController($this->catalog, $this->packs);
-        $this->admin = new InstanceController($this->catalog, $store);
+        $mutmcStore = new MutmcPackStore($disk);
+        $this->mutmc = new MutmcController($this->mutmcCatalog, new MutmcPackController($this->mutmcCatalog, $mutmcStore));
+        $this->admin = new InstanceController($this->mutmcCatalog, $mutmcStore);
         $plugin = new class {
-            public function getPath(): string { return getenv('MUTMC_STAGE_PLUGIN') ?: base_path('plugins/sitmc-launcher'); }
+            public function getPath(): string { return base_path('plugins/sitmc-launcher'); }
         };
         (require $plugin->getPath().'/bootstrap.php')($plugin);
+        $mutmcPlugin = new class {
+            public function getPath(): string { return getenv('MUTMC_STAGE_PLUGIN') ?: base_path('plugins/mutmc-launcher'); }
+        };
+        (require $mutmcPlugin->getPath().'/bootstrap.php')($mutmcPlugin);
         $this->app['view']->addExtension('twig', 'php');
         $this->app['events']->dispatch(new \App\Events\ConfigureRoutes($this->app['router']));
         $this->app['router']->getRoutes()->refreshNameLookups();
@@ -52,13 +62,14 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
 
     private function instance(string $id, string $brand): void
     {
-        $this->catalog->saveInstance(['instance_id' => $id, 'distribution_brand' => $brand,
+        $catalog = $brand === 'mutmc' ? $this->mutmcCatalog : $this->catalog;
+        $catalog->saveInstance(['instance_id' => $id, 'distribution_brand' => $brand,
             'name' => $id, 'game_version' => '1.21.1', 'revision' => 1, 'enabled' => true,
             'server_address' => 'play.example.com',
             'created_at' => now(), 'updated_at' => now()]);
-        $this->catalog->savePack($id, 2, ['url' => 'https://cdn.example.com/'.$id.'.mrpack',
+        $catalog->savePack($id, 2, ['url' => 'https://cdn.example.com/'.$id.'.mrpack',
             'sha1' => str_repeat('a', 40), 'size' => 100, 'format' => 'mrpack']);
-        $this->catalog->setRevision($id, 2);
+        $catalog->setRevision($id, 2);
     }
 
     public function testCatalogsAndPublicListingRemainSeparate(): void
@@ -68,7 +79,7 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
         DB::table(LauncherSchema::INSTANCES)->where('instance_id', 'disabled')->update(['enabled' => false]);
         DB::table(LauncherSchema::PACKS)->where('instance_id', 'bad')->update(['sha1' => 'bad']);
         DB::table(LauncherSchema::PACKS)->where('instance_id', 'zip')->update(['format' => 'multimc']);
-        $this->interop->savePublications(['ysu', 'mut']);
+        $this->interop->savePublications(['ysu']);
         $request = Request::create('https://skin.example.com/api/launcher/mutmc/manifest');
         $first = $this->mutmc->manifest($request);
         $this->assertSame(['mut'], array_column(json_decode($first->getContent(), true)['instances'], 'id'));
@@ -96,9 +107,9 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
     public function testCloudSettingsAndAdminRoutesAreBrandSpecific(): void
     {
         $this->catalog->saveSettings(['cloud_map_url' => 'https://ysu.example.com/']);
-        $this->catalog->saveSettings(['cloud_map_url' => 'https://mut.example.com/'], 'mutmc');
+        $this->mutmcCatalog->saveSettings(['cloud_map_url' => 'https://mut.example.com/']);
         $request = Request::create('https://skin.example.com/admin/launcher/mutmc');
-        $route = $this->app['router']->getRoutes()->getByName('sitmc-launcher.admin.mutmc');
+        $route = $this->app['router']->getRoutes()->getByName('mutmc-launcher.admin.index');
         $route->bind($request);
         $request->setRouteResolver(fn () => $route);
         foreach (['web', 'authorize', 'role:admin'] as $middleware) $this->assertContains($middleware, $route->gatherMiddleware());
@@ -107,7 +118,7 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
         $this->assertSame('/api/launcher/mutmc/manifest', $view['manifestPath']);
         $this->assertSame('https://mut.example.com/', $view['settings']['cloud_map_url']);
         $this->assertSame('https://ysu.example.com/', $this->catalog->settings()['cloud_map_url']);
-        $public = $this->app['router']->getRoutes()->getByName('sitmc-launcher.mutmc.manifest');
+        $public = $this->app['router']->getRoutes()->getByName('mutmc-launcher.manifest');
         $this->assertNotContains('authorize', $public->gatherMiddleware());
     }
 
@@ -117,12 +128,12 @@ final class MutmcDistributionTest extends \Tests\Security\TestCase
             'distribution_brand' => 'mutmc', 'enabled' => true];
         $response = $this->admin->store($this->adminRequest('/admin/launcher/mutmc/instances', 'POST', $values));
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('mutmc', $this->catalog->row('mut-new')['distribution_brand']);
+        $this->assertSame('mutmc', $this->mutmcCatalog->row('mut-new')['distribution_brand']);
         $this->assertSame([], $this->catalog->rows());
         $this->admin->update($this->adminRequest('/admin/launcher/mutmc/instances/mut-new', 'PUT',
             array_replace($values, ['name' => 'Edited'])), 'mut-new');
-        $this->assertSame('mutmc', $this->catalog->row('mut-new')['distribution_brand']);
-        $this->assertSame('Edited', $this->catalog->row('mut-new')['name']);
+        $this->assertSame('mutmc', $this->mutmcCatalog->row('mut-new')['distribution_brand']);
+        $this->assertSame('Edited', $this->mutmcCatalog->row('mut-new')['name']);
         $this->app->instance(PublicAddress::class, new class extends PublicAddress {
             public function resolve(string $host): array { return ['1.1.1.1']; }
         });

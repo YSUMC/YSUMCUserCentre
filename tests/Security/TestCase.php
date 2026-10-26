@@ -67,6 +67,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         $loader = require $root.'/vendor/autoload.php';
         $loader->addPsr4('LittleSkin\\YggdrasilConnect\\', $root.'/plugins/yggdrasil-connect/src');
         $loader->addPsr4('SITMinecraft\\Launcher\\', $root.'/plugins/sitmc-launcher/src');
+        $loader->addPsr4('MUTMC\\Launcher\\', $root.'/plugins/mutmc-launcher/src');
         $this->app->boot();
         \Illuminate\Database\Eloquent\Model::clearBootedModels();
         $this->assertSame(':memory:', DB::connection()->getDatabaseName());
