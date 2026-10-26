@@ -93,7 +93,7 @@ final class ManifestBuilder
     {
         $external = trim((string) ($row['pack_url'] ?? ''));
 
-        if ($external !== '') {
+        if ($external !== '' && \SITMinecraft\Launcher\Access\Audience::roles($row['audience_roles'] ?? null) === null) {
             return $external;
         }
 

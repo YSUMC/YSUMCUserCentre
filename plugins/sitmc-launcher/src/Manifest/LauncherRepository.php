@@ -275,6 +275,7 @@ final class LauncherRepository
     private const ROW_COLUMNS = [
         'i.instance_id',
         'i.distribution_brand',
+        'i.audience_roles',
         'p.format as pack_format',
         'i.updated_at',
         'i.name',

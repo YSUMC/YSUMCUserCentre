@@ -150,7 +150,7 @@ final class AnnouncementController
             throw ValidationException::withMessages(self::messages($problems));
         }
 
-        return [
+        return \SITMinecraft\Launcher\Access\Audience::input($request) + [
             'distribution_brand' => $this->distributionBrand($request),
             'announcement_id' => $values['announcement_id'],
             'title' => $values['title'],

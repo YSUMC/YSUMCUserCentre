@@ -155,7 +155,7 @@ final class InteropController
     {
         return view('sitmc-launcher::admin.interop_peer', [
             'peer' => null,
-            'domain' => '',
+            'manifest_url' => '',
             'status' => null,
             'peerStatus' => null,
         ]);
@@ -186,7 +186,8 @@ final class InteropController
 
         return view('sitmc-launcher::admin.interop_peer', [
             'peer' => $peer,
-            'domain' => InteropRules::host(parse_url($peer['origin'], PHP_URL_HOST)) ?? '',
+            'manifest_url' => $peer['manifest_url']
+                ?? rtrim((string) $peer['origin'], '/').InteropRules::WELL_KNOWN_PATH,
             'status' => session('sitmc_launcher_status'),
             'peerStatus' => $peerStatus,
         ]);
@@ -194,39 +195,39 @@ final class InteropController
 
     public function storePeer(Request $request): RedirectResponse
     {
+        if (!$request->has('manifest_url') && $request->has('domain')) $request->merge(['manifest_url' => $request->input('domain')]);
         $values = $request->validate([
-            'domain' => ['required', 'string', 'max:253'],
+            'manifest_url' => ['required', 'string', 'max:2048'],
             'enabled' => ['nullable', 'boolean'],
         ]);
 
-        $domain = InteropRules::host((string) $values['domain']);
+        $discovered = $this->discovery->discover((string) $values['manifest_url']);
 
-        if ($domain === null || ! InteropRules::publicHost($domain)) {
+        if (! isset($discovered['manifest_url'], $discovered['domain'], $discovered['origin'])) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-domain-invalid'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-manifest-url-invalid'),
             ]);
         }
 
+        $domain = (string) $discovered['domain'];
         $enabled = (bool) ($values['enabled'] ?? true);
         $settings = $this->repository->settings();
 
         if ($domain === $this->documents->domain($request->root())
             || ($settings['site_domain'] !== null && $domain === $settings['site_domain'])) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);
         }
 
-        if ($this->repository->peerByDomain($domain) !== null) {
+        if ($this->repository->peerByManifest((string) $discovered['manifest_url']) !== null) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-domain-taken'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-manifest-taken'),
             ]);
         }
-
-        $discovered = $this->discovery->discover($domain);
 
         if (! ($discovered['ok'] ?? false)) {
-            $this->saveOfflinePeer($domain, $enabled);
+            $this->saveOfflinePeer($discovered, $enabled);
 
             return redirect()
                 ->route('sitmc-launcher.admin.interop.index')
@@ -237,13 +238,13 @@ final class InteropController
 
         if ($siteId === $settings['site_id']) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);
         }
 
         if ($this->repository->peer($siteId) !== null) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
             ]);
         }
 
@@ -262,24 +263,27 @@ final class InteropController
             abort(404);
         }
 
+        if (!$request->has('manifest_url') && $request->has('domain')) $request->merge(['manifest_url' => $request->input('domain')]);
         $values = $request->validate([
-            'domain' => ['required', 'string', 'max:253'],
+            'manifest_url' => ['required', 'string', 'max:2048'],
             'enabled' => ['nullable', 'boolean'],
         ]);
 
-        $domain = InteropRules::host((string) $values['domain']);
+        $discovered = $this->discovery->discover((string) $values['manifest_url']);
 
-        if ($domain === null || ! InteropRules::publicHost($domain)) {
+        if (! isset($discovered['manifest_url'], $discovered['domain'], $discovered['origin'])) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-domain-invalid'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-manifest-url-invalid'),
             ]);
         }
 
         $enabled = (bool) ($values['enabled'] ?? false);
-        $currentDomain = InteropRules::host(parse_url((string) $peer['origin'], PHP_URL_HOST));
+        $currentManifest = $peer['manifest_url']
+            ?? rtrim((string) $peer['origin'], '/').InteropRules::WELL_KNOWN_PATH;
+        $currentManifest = InteropRules::publicHttpsUrl((string) $currentManifest);
 
         // Toggling "enabled" must not depend on the peer being online.
-        if ($domain === $currentDomain) {
+        if ($currentManifest !== null && $discovered['manifest_url'] === $currentManifest) {
             $this->repository->savePeer([
                 'site_id' => $siteId,
                 'name' => $peer['name'],
@@ -296,17 +300,25 @@ final class InteropController
 
         $settings = $this->repository->settings();
 
-        if ($domain === $this->documents->domain($request->root())
-            || ($settings['site_domain'] !== null && $domain === $settings['site_domain'])) {
+        if (
+            $discovered['domain'] === $this->documents->domain($request->root())
+            || ($settings['site_domain'] !== null && $discovered['domain'] === $settings['site_domain'])
+        ) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);
         }
 
-        $discovered = $this->discovery->discover($domain);
+        $other = $this->repository->peerByManifest((string) $discovered['manifest_url']);
+
+        if ($other !== null && $other['site_id'] !== $siteId) {
+            throw ValidationException::withMessages([
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-manifest-taken'),
+            ]);
+        }
 
         if (! ($discovered['ok'] ?? false)) {
-            $this->saveOfflinePeer($domain, $enabled, $siteId);
+            $this->saveOfflinePeer($discovered, $enabled, $siteId);
 
             return redirect()
                 ->route('sitmc-launcher.admin.interop.index')
@@ -317,14 +329,14 @@ final class InteropController
 
         if ($newSiteId === $settings['site_id']) {
             throw ValidationException::withMessages([
-                'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
+                'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-self'),
             ]);
         }
 
         if ($newSiteId !== $siteId) {
             if (! $this->repository->adoptPeerIdentity($siteId, $newSiteId, $discovered['name'], $discovered['description'])) {
                 throw ValidationException::withMessages([
-                    'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
+                    'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
                 ]);
             }
         }
@@ -403,12 +415,17 @@ final class InteropController
     }
 
     /**
-     * Save a domain without a successful pull. The placeholder id is replaced
-     * by the peer's real site id on the first successful sync.
+     * Save a manifest URL without a successful pull. The placeholder id is
+     * replaced by the peer's real site id on the first successful sync.
+     *
+     * @param  array<string, mixed>  $discovered
      */
-    private function saveOfflinePeer(string $domain, bool $enabled, ?string $oldSiteId = null): string
+    private function saveOfflinePeer(array $discovered, bool $enabled, ?string $oldSiteId = null): string
     {
-        $base = $this->discovery->pendingId($domain);
+        $manifestUrl = (string) $discovered['manifest_url'];
+        $domain = (string) $discovered['domain'];
+        $origin = (string) $discovered['origin'];
+        $base = $this->discovery->pendingId($manifestUrl);
         $pending = $base;
         $counter = 1;
 
@@ -419,7 +436,7 @@ final class InteropController
         if ($oldSiteId !== null && $oldSiteId !== $pending) {
             if (! $this->repository->adoptPeerIdentity($oldSiteId, $pending, $domain, null)) {
                 throw ValidationException::withMessages([
-                    'domain' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
+                    'manifest_url' => trans('sitmc-launcher::launcher.interop.problem.peer-site-id-taken'),
                 ]);
             }
         }
@@ -428,8 +445,8 @@ final class InteropController
             'site_id' => $pending,
             'name' => $domain,
             'description' => null,
-            'origin' => 'https://'.$domain,
-            'manifest_url' => 'https://'.$domain.InteropRules::WELL_KNOWN_PATH,
+            'origin' => $origin,
+            'manifest_url' => $manifestUrl,
             'enabled' => $enabled,
         ]);
 

@@ -16,9 +16,9 @@ final class MutmcController
 
     public function manifest(Request $request): Response
     {
-        [$builder, $document] = $this->document();
+        [$builder, $document] = $this->document($request);
         $etag = $builder->etag($document);
-        $headers = ['Content-Type' => 'application/json', 'ETag' => $etag, 'Cache-Control' => 'no-cache, must-revalidate'];
+        $headers = ['Content-Type' => 'application/json', 'ETag' => $etag, 'Cache-Control' => 'private, no-store', 'Vary' => 'Authorization'];
 
         return InteropRules::ifNoneMatch($request->header('If-None-Match'), $etag)
             ? response('', 304, $headers)
@@ -39,12 +39,15 @@ final class MutmcController
         return response('{"message":"Pack not found."}', 404, ['Content-Type' => 'application/json', 'Cache-Control' => 'no-store']);
     }
 
-    private function document(): array
+    private function document(?Request $request = null): array
     {
         $builder = new ManifestBuilder(rtrim(config('app.url'), '/'), '/api/launcher/mutmc/packs');
         $rows = array_values(array_filter($this->repository->rows('mutmc'),
             static fn ($row) => ($row['pack_format'] ?? 'mrpack') === 'mrpack'));
-        $settings = $this->repository->settings('mutmc');
+        $request ??= request();
+        $audience = app(\SITMinecraft\Launcher\Access\Audience::class);
+        $rows = $audience->filter($rows, $request);
+        $settings = $audience->settings($this->repository->settings('mutmc'), $request, 'mutmc');
         $publishedAt = 0;
         foreach ($rows as $row) {
             $publishedAt = max($publishedAt, strtotime((string) ($row['updated_at'] ?? '')) ?: 0);

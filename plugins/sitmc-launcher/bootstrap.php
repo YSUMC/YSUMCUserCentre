@@ -50,6 +50,8 @@ return function ($plugin) {
         ));
     });
 
+    app()->alias(TokenVerifier::class, \SITMinecraft\Launcher\Auth\VerifiesPlayerToken::class);
+
     // mc-interop v1: storage, peer puller and the single serializer. Everything
     // is a singleton so one request builds one document and reuses one HTTP
     // client configuration.
@@ -109,6 +111,7 @@ return function ($plugin) {
         $router->group(
             ['middleware' => ['api', 'throttle:60,1'], 'prefix' => 'api/launcher'],
             function () use ($router) {
+                $router->get('identity', \SITMinecraft\Launcher\Http\Controllers\IdentityController::class);
                 $router->group(['prefix' => 'mutmc'], function () use ($router) {
                     $router->match(['GET', 'POST'], 'curseforge/{path}', [CurseForgeController::class, 'mutmc'])
                         ->where('path', 'v1/[A-Za-z0-9/-]+')->middleware('throttle:30,1');
@@ -306,6 +309,9 @@ return function ($plugin) {
                             ->name($names.'releases.destroy');
                     });
                 }
+
+                $router->get('users', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'index'])->name('sitmc-launcher.admin.memberships');
+                $router->put('users/{uid}', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'update'])->where('uid', '[0-9]+')->name('sitmc-launcher.admin.memberships.update');
 
                 // YSUMC interop remains outside the MUTMCL administration area.
                 $router->get('interop', [AdminInteropController::class, 'index'])

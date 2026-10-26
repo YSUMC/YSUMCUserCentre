@@ -217,6 +217,30 @@ final class SiteDocumentService
         ];
     }
 
+    public function audienceDocument(\Illuminate\Http\Request $request): array
+    {
+        $rows = app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->interopRows(), $request);
+        $domain = $this->domain();
+        foreach ($rows as &$row) {
+            if (\SITMinecraft\Launcher\Access\Audience::roles($row['audience_roles'] ?? null) !== null) {
+                foreach ($row['packs'] as &$pack) {
+                    $pack['url'] = 'https://'.$domain.'/api/launcher/packs/'.rawurlencode($row['id']).'/'.(int) $pack['revision'];
+                }
+                unset($pack);
+            }
+            // Filtering above is authoritative. Enable this private projection
+            // independently of the administrator's public-federation opt-in.
+            unset($row['audience_roles']);
+            $row['published'] = true;
+        }
+        unset($row);
+        $settings = $this->repository->settings();
+        return (new SiteDocumentBuilder($domain))->build($rows, ['site' => [
+            'id' => $settings['site_id'], 'name' => $settings['site_name'],
+            'description' => $settings['site_description'], 'domain' => $domain,
+        ], 'settingsUpdatedAt' => $this->repository->interopUpdatedAt()]);
+    }
+
     public function scheduleRefresh(): void
     {
         $this->aggregator->scheduleRefreshIfStale();

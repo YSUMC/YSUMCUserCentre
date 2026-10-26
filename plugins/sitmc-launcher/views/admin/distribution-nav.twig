@@ -4,6 +4,7 @@
   <li class="nav-item"><a class="nav-link {{ activeTab == 'instances' ? 'active' : '' }}" href="{{ route(adminIndexRoute) }}">{{ trans('sitmc-launcher::launcher.tab.instances') }}</a></li>
   <li class="nav-item"><a class="nav-link {{ activeTab == 'announcements' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'announcements.index') }}">{{ trans('sitmc-launcher::launcher.tab.announcements') }}</a></li>
   <li class="nav-item"><a class="nav-link {{ activeTab == 'releases' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'releases.index') }}">{{ trans('sitmc-launcher::launcher.tab.releases') }}</a></li>
+  <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.memberships') }}">用户分级</a></li>
   {% if distributionBrand == 'ysumc' %}
     <li class="nav-item"><a class="nav-link" href="{{ route('sitmc-launcher.admin.interop.index') }}">{{ trans('sitmc-launcher::launcher.tab.interop') }}</a></li>
   {% endif %}

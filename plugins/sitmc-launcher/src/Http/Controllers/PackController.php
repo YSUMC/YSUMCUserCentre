@@ -39,7 +39,7 @@ final class PackController
             }
         }
         if ($published === null) {
-            foreach ($this->documents->document()['document']['packs'] as $entry) {
+            foreach ($this->documents->audienceDocument(request())['packs'] as $entry) {
                 if (! isset($entry['source']) && $entry['id'] === $instanceId && ($entry['revision'] ?? null) === $revision && isset($entry['artifact'])) $published = $entry;
             }
         }
@@ -50,6 +50,9 @@ final class PackController
     /** Called only after the owning catalog verifies publication and revision. */
     public function deliver(string $instanceId, int $revision, array $artifact): Response|RedirectResponse
     {
+        $row = $this->repository->row($instanceId);
+        $identity = app(\SITMinecraft\Launcher\Access\Audience::class)->identity(request());
+        abort_unless($row !== null && \SITMinecraft\Launcher\Access\Audience::permits($row, $identity), 404);
         $pack = $this->repository->pack($instanceId, $revision);
 
         if ($pack === null) {
@@ -59,7 +62,7 @@ final class PackController
         $external = trim((string) ($pack['url'] ?? ''));
 
         if ($external !== '') {
-            return redirect()->away($artifact['url']);
+            return redirect()->away($external)->withHeaders(\SITMinecraft\Launcher\Access\Audience::headers());
         }
 
         $diskPath = trim((string) ($pack['disk_path'] ?? ''));
@@ -73,7 +76,7 @@ final class PackController
         $absolute = $this->packs->absolutePath($diskPath);
 
         if ($absolute !== null) {
-            return new PackStreamResponse($absolute, $name);
+            return (new PackStreamResponse($absolute, $name))->withHeaders(\SITMinecraft\Launcher\Access\Audience::headers());
         }
 
         $contents = $this->packs->contents($diskPath);
@@ -85,6 +88,6 @@ final class PackController
         return response($contents, 200, [
             'Content-Type' => $extension === 'bin' ? 'application/octet-stream' : 'application/zip',
             'Content-Disposition' => 'attachment; filename="'.$name.'"',
-        ]);
+        ] + \SITMinecraft\Launcher\Access\Audience::headers());
     }
 }

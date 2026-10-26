@@ -52,6 +52,8 @@
 
 后台从 `/admin/launcher` 进入，通过页签切换实例、公告、版本和对外清单。
 
+添加友站支持完整的 HTTPS 清单地址（包括反向代理路径前缀），也兼容根域名；按清单地址去重，离线站点可先保存并在同步成功后识别站点身份。
+
 ## 客户端怎么指向它
 
 当前 YSUMC 启动器固定使用 `https://skin.ysumc.net`。前端入口在 `apps/app-frontend/src/config.ts`，Rust 服务地址与清单来源限制在 `packages/app-lib/src/ysumc.rs`。换域名需同步改动两端并重新构建，不能只改一个前端变量。
@@ -137,7 +139,7 @@ Linux apt 更新另需 `/api/launcher/update/versions` 和 `.deb` 的 SHA-256、
 
 ## 卸载
 
-在后台删除插件会**删除插件的九张表以及 storage 里已上传的整合包文件**。只想停用而不丢数据时,用「停用」而不是「删除」。
+在后台删除插件会**删除插件的十一张表以及 storage 里已上传的整合包文件**。只想停用而不丢数据时,用「停用」而不是「删除」。
 
 ## 表结构
 
@@ -148,5 +150,22 @@ Linux apt 更新另需 `/api/launcher/update/versions` 和 `.deb` 的 SHA-256、
 | `sitmc_launcher_settings` | 启动器更新策略(min/latest/force_update) |
 | `sitmc_launcher_announcements` | 公告(标识、标题、摘要、Markdown 正文、展示方式、优先级、开始/结束/发布时间、按钮链接与文案、是否启用) |
 | `sitmc_launcher_releases` | 启动器版本(通道、版本号、Markdown 更新说明、发布日期、制品地址、minisign 签名、可选的 target/arch、是否启用) |
+| `sitmc_launcher_memberships` | 用户等级、单个部门、最近修改人和时间 |
+| `sitmc_launcher_membership_audit` | 用户分级变更前后内容、操作者和时间 |
 
 表名不加前缀,但都通过 Laravel 的 `Schema`/`DB` 门面访问,所以在 `.env` 里配了 `DB_PREFIX` 也会正常工作。
+
+
+## 用户分级与定向下发（YSUMC）
+
+在启动器管理的“用户分级”页（`/admin/launcher/users`）为用户设置普通用户、社员、部长、社长、管理员或超级管理员。社员、部长必须且只能选一个部门：宣传、运维、技术、建筑。普通用户至社长不取得后台管理权；已有管理员、超级管理员仍以皮肤站的核心权限为准。普通管理员只能管理普通用户至社长，超级管理员才能调整管理权限；禁止修改自己的管理权限，变更写入独立审计表。
+
+实例、公告、版本编辑页均提供“公开”或指定接收等级。指定等级采用精确白名单，不自动包含更高等级；未登录请求只能获得公开内容。旧记录默认公开，旧管理客户端遗漏新字段时不会清除已有的限制。
+
+客户端通过 `Authorization: Bearer <当前 Yggdrasil Connect / Janus access token>` 请求 `/api/launcher/identity`、`manifest`、`announcements` 和 `update/*`。服务端调用既有 userinfo 验证令牌，并核对 subject UID 和角色的当前归属，再从数据库读取权限；客户端提交的等级不参与判断。身份响应包含 `role`、`role_label`、单个 `department`、`department_label`、`tags` 和 `player`，不返回邮箱或令牌。身份和受众清单禁止共享缓存。
+
+`manifest.catalog` 是按当前账号筛选的本站 mc-interop 结构，包含纯服务器实例；公开 well-known、友站和旧版聚合接口均不导出受限实例。友站自己的内容仍由友站负责，不能使用本站等级代替友站身份。受限整合包通过本站下载端点再次鉴权；外部 CDN 或已公开的安装包链接仍受其原有存储权限控制，本功能不撤回已下载的文件，也不替代游戏服务器白名单。
+
+新版 YSUMC 启动器会在当前角色下显示等级与部门标签，并在切换账号时清除旧公告、更新和实例显示。令牌仅发送到固定本站 API，不转发给友站或下载 CDN。旧版启动器继续读取公开内容；首次发布支持分级的新客户端时应将该版本设为公开，待用户升级后再启用定向下发。
+
+数据库升级为新增三类内容的 `audience_roles` 列、用户分级表和审计表，不批量改写现有用户权限。发布前备份数据库和插件目录；回退程序时应先停用受限内容或停用插件，因为旧插件不理解接收组限制，直接回退会重新公开这些内容。新表和列可保留，避免丢失设置与审计记录。

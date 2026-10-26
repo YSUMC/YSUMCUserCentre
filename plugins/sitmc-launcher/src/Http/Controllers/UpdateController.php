@@ -23,25 +23,25 @@ final class UpdateController
     {
         $builder = new UpdateBuilder();
         $document = $builder->latest(
-            $this->repository->rows($request->route('distributionBrand', 'ysumc')),
+            app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request),
             self::channel($request)
         );
 
         return $document === null
-            ? response()->noContent()
+            ? response()->noContent(204, \SITMinecraft\Launcher\Access\Audience::headers())
             : self::json($builder->encode($document));
     }
 
     public function versions(Request $request): Response
     {
         $builder = new UpdateBuilder();
-        return self::json($builder->encode($builder->versions($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request->root())));
+        return self::json($builder->encode($builder->versions(app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request), $request->root())));
     }
 
     public function releases(Request $request): Response
     {
         $builder = new UpdateBuilder();
-        return self::json($builder->encode($builder->releases($this->repository->rows($request->route('distributionBrand', 'ysumc')))));
+        return self::json($builder->encode($builder->releases(app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request))));
     }
 
     /**
@@ -60,7 +60,7 @@ final class UpdateController
     ): Response {
         $builder = new UpdateBuilder();
         $document = $builder->dynamic(
-            $this->repository->rows($request->route('distributionBrand', 'ysumc')),
+            app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request),
             $target,
             $arch,
             $currentVersion,
@@ -68,7 +68,7 @@ final class UpdateController
         );
 
         return $document === null
-            ? response()->noContent()
+            ? response()->noContent(204, \SITMinecraft\Launcher\Access\Audience::headers())
             : self::json($builder->encode($document));
     }
 
@@ -107,7 +107,8 @@ final class UpdateController
     {
         return response($body, 200, [
             'Content-Type' => 'application/json',
-            'Cache-Control' => 'no-cache, must-revalidate',
+            'Cache-Control' => 'private, no-store',
+            'Vary' => 'Authorization',
         ]);
     }
 }

@@ -313,7 +313,7 @@ final class InstanceController
             throw \Illuminate\Validation\ValidationException::withMessages(['instance_id' => '实例 ID 创建后不可修改。']);
         }
 
-        return [
+        return \SITMinecraft\Launcher\Access\Audience::input($request) + [
             'distribution_brand' => $this->distributionBrand($request),
             'instance_id' => $values['instance_id'],
             'name' => $values['name'],

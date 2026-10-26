@@ -26,6 +26,10 @@ final class LauncherSchema
 
     public const RELEASES = 'sitmc_launcher_releases';
 
+    public const MEMBERSHIPS = 'sitmc_launcher_memberships';
+
+    public const MEMBERSHIP_AUDIT = 'sitmc_launcher_membership_audit';
+
     /**
      * mc-interop v1 tables. They are additive: the legacy manifest keeps reading
      * its own tables, and removing this plugin still removes everything.
@@ -173,6 +177,31 @@ final class LauncherSchema
             }
         }
 
+        foreach ([self::INSTANCES, self::ANNOUNCEMENTS, self::RELEASES] as $tableName) {
+            if (! Schema::hasColumn($tableName, 'audience_roles')) {
+                Schema::table($tableName, static fn (Blueprint $table) => $table->text('audience_roles')->nullable());
+            }
+        }
+        if (! Schema::hasTable(self::MEMBERSHIPS)) {
+            Schema::create(self::MEMBERSHIPS, static function (Blueprint $table): void {
+                $table->unsignedInteger('uid')->primary();
+                $table->string('role', 24)->default('normal');
+                $table->string('department', 24)->nullable();
+                $table->unsignedInteger('updated_by');
+                $table->timestamp('updated_at')->nullable();
+            });
+        }
+        if (! Schema::hasTable(self::MEMBERSHIP_AUDIT)) {
+            Schema::create(self::MEMBERSHIP_AUDIT, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedInteger('uid')->index();
+                $table->unsignedInteger('actor_uid');
+                $table->text('before_value');
+                $table->text('after_value');
+                $table->timestamp('created_at');
+            });
+        }
+
         if (! Schema::hasColumn(self::RELEASES, 'sha256')) {
             Schema::table(self::RELEASES, static function (Blueprint $table): void {
                 $table->string('sha256', 64)->nullable();
@@ -294,6 +323,8 @@ final class LauncherSchema
     {
         self::$installed = false;
 
+        Schema::dropIfExists(self::MEMBERSHIP_AUDIT);
+        Schema::dropIfExists(self::MEMBERSHIPS);
         Schema::dropIfExists(self::INTEROP_ENDPOINTS);
         Schema::dropIfExists(self::INTEROP_SERVERS);
         Schema::dropIfExists(self::INTEROP_SNAPSHOTS);

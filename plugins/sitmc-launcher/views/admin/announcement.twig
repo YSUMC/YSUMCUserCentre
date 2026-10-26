@@ -40,6 +40,7 @@
     </div>
 
     <div class="card-body">
+          {% include 'sitmc-launcher::admin.audience' with {audience: announcement} %}
       {% if errors is defined and errors.any() %}
         <div class="callout callout-danger">
           <ul class="mb-0">

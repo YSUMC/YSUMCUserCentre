@@ -13,11 +13,10 @@ namespace SITMinecraft\Launcher\Auth;
  * reimplementing token validation: the endpoint answers 401 for an invalid token
  * and returns the bound character otherwise.
  *
- * Only the character name is taken from it. The launcher has no way to name the
- * account, and the plugin has no business assuming how this site derives player
- * UUIDs, so callers look the character up by name and check its owner.
+ * The authenticated subject UID and bound character are checked together.
+ * This avoids trusting a client-supplied rank or a reassigned character name.
  */
-final class TokenVerifier
+final class TokenVerifier implements VerifiesPlayerToken
 {
     private const TIMEOUT_SECONDS = 5;
 
@@ -28,19 +27,24 @@ final class TokenVerifier
      */
     public function verifiedPlayer(string $token): ?string
     {
+        return $this->verifiedIdentity($token)['player'] ?? null;
+    }
+
+    public function verifiedIdentity(string $token): ?array
+    {
         $response = $this->request($token);
-        if ($response === null) {
-            return null;
-        }
+        return $response === null ? null : self::identityFromResponse($response);
+    }
 
+    /** The authenticated subject, not a client-supplied player name, owns the rank. */
+    public static function identityFromResponse(array $response): ?array
+    {
         $profile = $response['selectedProfile'] ?? null;
-        if (!is_array($profile) || !isset($profile['name']) || !is_string($profile['name'])) {
-            return null;
-        }
-
+        $subject = $response['sub'] ?? null;
+        if ((!is_string($subject) && !is_int($subject)) || !ctype_digit((string) $subject)
+            || (int) $subject <= 0 || !is_array($profile) || !is_string($profile['name'] ?? null)) return null;
         $name = trim($profile['name']);
-
-        return $name === '' ? null : $name;
+        return $name === '' ? null : ['uid' => (int) $subject, 'player' => $name];
     }
 
     /**

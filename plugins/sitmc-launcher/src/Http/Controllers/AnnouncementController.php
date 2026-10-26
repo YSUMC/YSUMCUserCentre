@@ -26,11 +26,12 @@ final class AnnouncementController
     public function index(Request $request): Response
     {
         $builder = new AnnouncementBuilder();
-        $entries = $builder->build($this->repository->rows($request->route('distributionBrand', 'ysumc')));
+        $entries = $builder->build(app(\SITMinecraft\Launcher\Access\Audience::class)->filter($this->repository->rows($request->route('distributionBrand', 'ysumc')), $request));
 
         return response($builder->encode($entries), 200, [
             'Content-Type' => 'application/json',
-            'Cache-Control' => 'no-cache, must-revalidate',
+            'Cache-Control' => 'private, no-store',
+            'Vary' => 'Authorization',
         ]);
     }
 }

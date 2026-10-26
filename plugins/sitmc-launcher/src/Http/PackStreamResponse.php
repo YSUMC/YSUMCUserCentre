@@ -33,6 +33,7 @@ final class PackStreamResponse extends Response
 
     public function sendContent(): static
     {
+        if (request()->isMethod('HEAD')) return $this;
         $handle = fopen($this->path, 'rb');
 
         if ($handle === false) {

@@ -172,7 +172,7 @@ final class ReleaseController
             ));
         }
 
-        return [
+        return \SITMinecraft\Launcher\Access\Audience::input($request) + [
             'distribution_brand' => $this->distributionBrand($request),
             'channel' => $values['channel'],
             'version' => trim($values['version']),

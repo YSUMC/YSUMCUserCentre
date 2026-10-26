@@ -1,0 +1,41 @@
+{% extends 'admin.base' %}
+{% block title %}用户分级{% endblock %}
+{% block content %}
+  {% if status %}<div class="callout callout-success">{{ status }}</div>{% endif %}
+  {% if errors is defined and errors.any() %}
+    <div class="callout callout-danger">{% for error in errors.all() %}<p>{{ error }}</p>{% endfor %}</div>
+  {% endif %}
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">用户等级与部门</h3></div>
+    <div class="card-body">
+      <form method="get" class="form-inline mb-3">
+        <label for="member-search" class="mr-2">UID、邮箱或昵称</label>
+        <input id="member-search" class="form-control mr-2" name="q" value="{{ search }}" maxlength="120">
+        <button class="btn btn-primary" type="submit">查找</button>
+      </form>
+      <p>社员和部长必须选择一个部门。等级与部门标签会显示在启动器的当前角色下方。社长及以下等级不授予网站后台管理权。</p>
+      <div class="table-responsive"><table class="table table-hover">
+        <thead><tr><th>用户</th><th>当前标签</th><th>等级与部门</th></tr></thead>
+        <tbody>{% for row in rows %}
+          <tr><td>#{{ row.uid }} · {{ row.nickname }}<br>{{ row.email }}</td>
+            <td>{% for tag in row.membership.tags %}<span class="badge badge-info mr-1">{{ tag }}</span>{% endfor %}</td>
+            <td>{% if row.editable %}
+              <form method="post" action="{{ route('sitmc-launcher.admin.memberships.update', {uid: row.uid}) }}" class="form-inline">
+                {{ csrf_field() }}{{ method_field('PUT') }}
+                <select name="role" aria-label="用户等级" class="form-control mr-2">
+                  {% for key, label in roles %}<option value="{{ key }}" {{ row.membership.role == key ? 'selected' : '' }}>{{ label }}</option>{% endfor %}
+                </select>
+                <select name="department" aria-label="部门" class="form-control mr-2">
+                  <option value="">无部门</option>
+                  {% for key, label in departments %}<option value="{{ key }}" {{ row.membership.department == key ? 'selected' : '' }}>{{ label }}</option>{% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">保存</button>
+              </form>
+            {% else %}<span class="text-muted">请由超级管理员或在用户管理中处理账号状态。</span>{% endif %}</td>
+          </tr>
+        {% else %}<tr><td colspan="3">没有找到用户。</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {{ pagination.links()|raw }}
+    </div>
+  </div>
+{% endblock %}

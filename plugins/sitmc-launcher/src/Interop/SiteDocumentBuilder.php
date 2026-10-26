@@ -85,6 +85,8 @@ final class SiteDocumentBuilder
                 continue;
             }
 
+            if (\SITMinecraft\Launcher\Access\Audience::roles($instance['audience_roles'] ?? null) !== null) continue;
+
             // Publication is an explicit opt-in: never publish an instance the
             // administrator did not select, even if it exists in the database.
             if (! (bool) ($instance['published'] ?? false) || ! (bool) ($instance['enabled'] ?? true)) {
