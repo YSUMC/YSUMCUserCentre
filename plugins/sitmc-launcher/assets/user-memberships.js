@@ -6,6 +6,8 @@
   const endpoint = `${blessing.base_url.replace(/\/$/, '')}/admin/launcher/users`;
   const cache = new Map();
   const pending = new Set();
+  const controls = new WeakMap();
+  let bypassCore = null;
   let scheduled = false;
   let departments = {};
   let opening = false;
@@ -54,14 +56,16 @@
       const host = row.cells[4];
       const signature = Array.from(host.childNodes)
         .filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join('');
-      found.push({ uid, host, signature });
+      const control = host.querySelector('a > .fa-edit')?.closest('a');
+      found.push({ uid, host, signature, control });
     });
     container.querySelectorAll('.card-body .info-box').forEach(card => {
       const uid = card.querySelector('img.bs-avatar')?.getAttribute('src')?.match(/\/avatar\/user\/(\d+)(?:[/?#]|$)/)?.[1];
-      const host = card.querySelector('.info-box-content');
+      const host = card.querySelector('.row.m-2 > div:nth-child(2)');
       if (!uid || !host) return;
-      const signature = card.querySelector('.row.m-2 > div:nth-child(2) span')?.textContent || '';
-      found.push({ uid, host, signature });
+      const signature = host.querySelector('span')?.textContent || '';
+      const control = card.querySelector('.dropdown-item > .fa-user-secret')?.closest('a');
+      found.push({ uid, host, signature, control });
     });
     return found;
   }
@@ -82,16 +86,9 @@
       root.append(retry);
       return;
     }
-    root.append(element('small', 'launcher-membership-heading', '用户等级 / 部门'));
     const tags = element('div');
     record.membership.tags.forEach(tag => tags.append(element('span', 'badge badge-info', tag)));
     root.append(tags);
-    if (record.editable) {
-      const button = element('button', 'btn btn-link launcher-membership-edit', '调整等级和部门');
-      button.type = 'button';
-      button.onclick = () => openEditor(uid, button);
-      root.append(button);
-    }
   }
 
   function schedule() {
@@ -103,7 +100,7 @@
   function scan() {
     scheduled = false;
     const missing = new Map();
-    locations().forEach(({ uid, host, signature }) => {
+    locations().forEach(({ uid, host, signature, control }) => {
       let root = Array.from(host.children).find(node => node.classList.contains('launcher-membership'));
       if (!root) {
         root = element('div', 'launcher-membership');
@@ -112,6 +109,26 @@
       const entry = cache.get(uid);
       const current = entry?.signature === signature ? entry.record : null;
       render(root, current, uid);
+      // Reuse the core pencil/menu item. Only add a pencil where the plugin
+      // permits editing but core has no control (e.g. a super-admin peer).
+      let pencil = host.querySelector('.launcher-membership-pencil');
+      if (control) {
+        controls.set(control, { uid, native: true });
+        control.title = '调整用户等级、部门或账号状态';
+        pencil?.remove();
+      } else if (current?.editable) {
+        if (!pencil) {
+          pencil = element('button', 'btn btn-link p-0 ml-2 launcher-membership-pencil');
+          pencil.type = 'button';
+          pencil.title = '调整用户等级和部门';
+          pencil.setAttribute('aria-label', pencil.title);
+          pencil.append(element('i', 'fas fa-edit'));
+          host.insertBefore(pencil, root);
+        }
+        controls.set(pencil, { uid, native: false });
+      } else {
+        pencil?.remove();
+      }
       if (!current && !pending.has(uid)) missing.set(uid, signature);
     });
     if (!missing.size) return;
@@ -130,7 +147,24 @@
     });
   }
 
-  async function openEditor(uid, button) {
+  function openCorePermission(button) {
+    bypassCore = button;
+    try { button.click(); } finally { bypassCore = null; }
+  }
+
+  // Capture before React's onClick: one click must open only one dialog. Core
+  // handlers remain intact for account status and when the plugin is disabled.
+  container.addEventListener('click', event => {
+    const button = event.target instanceof Element ? event.target.closest('a, button') : null;
+    const control = button && controls.get(button);
+    if (!control) return;
+    event.preventDefault();
+    if (bypassCore === button) return;
+    event.stopImmediatePropagation();
+    openEditor(control.uid, button, control.native);
+  }, true);
+
+  async function openEditor(uid, button, native) {
     if (opening || document.querySelector('.launcher-membership-dialog')) return;
     opening = true;
     button.disabled = true;
@@ -138,11 +172,18 @@
       // Reload before editing, so options reflect current account permissions.
       const body = await load([uid]);
       const user = body.users[0];
-      if (!user?.editable) throw new Error('当前无权调整此账号的等级，请刷新用户列表。');
+      if (!user?.editable) {
+        // Banned/auth-only accounts keep core's existing restoration flow.
+        if (user && native) {
+          openCorePermission(button);
+          return;
+        }
+        throw new Error('当前无权调整此账号的等级，请刷新用户列表。');
+      }
       departments = body.departments;
-      showEditor(user, button);
+      showEditor(user, button, native);
     } catch (error) {
-      const root = button.closest('.launcher-membership');
+      const root = locations().find(location => location.uid === uid)?.host.querySelector('.launcher-membership');
       const previous = root?.querySelector('[role="alert"]');
       previous?.remove();
       const message = element('small', 'text-danger d-block', error.message);
@@ -154,7 +195,7 @@
     }
   }
 
-  function showEditor(user, opener) {
+  function showEditor(user, opener, native) {
     const dialog = element('dialog', 'launcher-membership-dialog');
     const title = element('h2', '', '调整用户等级和部门');
     title.id = 'launcher-membership-title';
@@ -195,6 +236,13 @@
     save.type = 'submit';
     const actions = element('div', 'launcher-membership-actions');
     actions.append(cancel, save);
+    let accountStatus;
+    if (native) {
+      accountStatus = element('button', 'btn btn-outline-danger mr-auto', '封禁账号…');
+      accountStatus.type = 'button';
+      accountStatus.onclick = () => { dialog.close(); openCorePermission(opener); };
+      actions.prepend(accountStatus);
+    }
     form.append(field('用户等级', role), departmentField,
       element('small', 'text-muted', '社员和部长必须选择一个部门；等级与部门标签同步用于启动器展示和内容下发。'), feedback, actions);
     dialog.append(title, element('p', 'text-muted mb-0', `${user.nickname} · UID ${user.uid}`), form);
@@ -206,6 +254,7 @@
       if (saving) return;
       saving = true;
       save.disabled = cancel.disabled = role.disabled = department.disabled = true;
+      if (accountStatus) accountStatus.disabled = true;
       save.textContent = '正在保存…';
       feedback.textContent = '';
       try {
@@ -228,6 +277,7 @@
       } finally {
         saving = false;
         save.disabled = cancel.disabled = role.disabled = false;
+        if (accountStatus) accountStatus.disabled = false;
         save.textContent = '保存';
         syncDepartment();
       }
