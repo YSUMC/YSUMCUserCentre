@@ -1,10 +1,13 @@
 {% set restricted = audience.audience_roles is defined and audience.audience_roles is not null and audience.audience_roles != '' %}
+{% set hasOldAudience = session_has('_old_input.audience_mode') %}
+{% set selectedMode = session_get('_old_input.audience_mode', restricted ? 'groups' : 'public') %}
+{% set selectedRoles = session_get('_old_input.audience_roles', []) %}
 <fieldset class="form-group border rounded p-3">
   <legend class="h6">{{ trans('sitmc-launcher::launcher.audience.title') }}</legend>
-  <label class="d-block"><input type="radio" name="audience_mode" value="public" {{ old('audience_mode', restricted ? 'groups' : 'public') == 'public' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.public') }}</label>
-  <label class="d-block"><input type="radio" name="audience_mode" value="groups" {{ old('audience_mode', restricted ? 'groups' : 'public') == 'groups' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.groups') }}</label>
+  <label class="d-block"><input type="radio" name="audience_mode" value="public" {{ selectedMode == 'public' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.public') }}</label>
+  <label class="d-block"><input type="radio" name="audience_mode" value="groups" {{ selectedMode == 'groups' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.groups') }}</label>
   {% for role in ['normal', 'member', 'minister', 'president', 'admin', 'super_admin'] %}
-    <label class="mr-3"><input type="checkbox" name="audience_roles[]" value="{{ role }}" {{ (old('audience_roles') is not null ? role in old('audience_roles', []) : ('"' ~ role ~ '"') in (audience.audience_roles|default(''))) ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}</label>
+    <label class="mr-3"><input type="checkbox" name="audience_roles[]" value="{{ role }}" {{ (hasOldAudience ? (selectedRoles is iterable and role in selectedRoles) : ('"' ~ role ~ '"') in (audience.audience_roles|default(''))) ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}</label>
   {% endfor %}
   <small class="form-text text-muted">{{ trans('sitmc-launcher::launcher.audience.help') }}</small>
 </fieldset>

@@ -283,8 +283,12 @@ final class LauncherAudienceTest extends TestCase
             'memberships' => file_get_contents($root.'memberships.twig'),
             'audience' => file_get_contents($root.'audience.twig'),
         ]));
-        foreach (['route', 'csrf_field', 'method_field', 'trans'] as $name) $twig->addFunction(new \Twig\TwigFunction($name, fn ($key = '') => $key));
-        $twig->addFunction(new \Twig\TwigFunction('old', fn ($key, $default = null) => $default));
+        foreach (['route', 'trans'] as $name) $twig->addFunction(new \Twig\TwigFunction($name, fn ($key = '') => $key));
+        $twigConfig = require base_path('config/twigbridge.php');
+        $this->assertContains(\TwigBridge\Extension\Laravel\Session::class, $twigConfig['extensions']['enabled']);
+        $session = $this->app->make('session.store');
+        $twig->addExtension(new \TwigBridge\Extension\Laravel\Session($session));
+        $this->assertNull($twig->getFunction('old'));
         $html = $twig->render('memberships', ['rows' => [['uid' => 1, 'email' => 'user@example.invalid',
             'nickname' => '<script>alert(1)</script>', 'editable' => true, 'membership' => $this->memberships->describe($this->member)]],
             'roles' => Membership::ROLES, 'departments' => Membership::DEPARTMENTS]);
@@ -294,5 +298,18 @@ final class LauncherAudienceTest extends TestCase
         $html = $twig->render('audience', ['audience' => ['audience_roles' => '["member"]']]);
         $this->assertSame(6, substr_count($html, 'type="checkbox"'));
         $this->assertStringContainsString('value="member" checked', $html);
+        $this->assertStringContainsString('value="groups" checked', $html);
+        $session->flashInput(['audience_mode' => 'groups', 'audience_roles' => ['minister']]);
+        $html = $twig->render('audience', ['audience' => ['audience_roles' => '["member"]']]);
+        $this->assertStringContainsString('value="minister" checked', $html);
+        $this->assertStringNotContainsString('value="member" checked', $html);
+        $session->flashInput(['audience_mode' => 'groups']);
+        $html = $twig->render('audience', ['audience' => ['audience_roles' => '["member"]']]);
+        $this->assertStringContainsString('value="groups" checked', $html);
+        $this->assertStringNotContainsString('value="member" checked', $html);
+        $session->flashInput(['audience_mode' => 'public']);
+        $html = $twig->render('audience', ['audience' => ['audience_roles' => '["member"]']]);
+        $this->assertStringContainsString('value="public" checked', $html);
+        $this->assertStringNotContainsString('value="member" checked', $html);
     }
 }
