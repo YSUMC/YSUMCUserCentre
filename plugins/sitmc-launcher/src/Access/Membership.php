@@ -48,7 +48,9 @@ final class Membership
             $users = User::whereIn('uid', [$actor->uid, $target->uid])->orderBy('uid')->lockForUpdate()->get()->keyBy('uid');
             $actor = $users->get($actor->uid);
             $target = $users->get($target->uid);
-            abort_unless($actor && $target && $actor->isAdmin(), 403);
+            $policy = app(BackendPolicy::class);
+            $policy->forgetIdentities();
+            abort_unless($actor && $target && $policy->canAssign($actor, $target, $role, $department), 403, '没有调整该用户等级或部门的权限，不能授予超出自己的权限。');
             abort_if($target->permission < User::NORMAL, 403, '请先在用户管理中处理账号状态。');
             $permission = match ($role) { 'admin' => User::ADMIN, 'super_admin' => User::SUPER_ADMIN, default => User::NORMAL };
             if ($actor->permission < User::SUPER_ADMIN) {
@@ -62,9 +64,10 @@ final class Membership
             $oldPermission = $target->permission;
             if ($permission !== $oldPermission) {
                 event('user.permission.updating', [$target, $permission]);
+                $old = $target->replicate();
                 $target->permission = $permission;
                 $target->save();
-                event('user.permission.updated', [$target, $oldPermission]);
+                event('user.permission.updated', [$target, $old]);
             }
             DB::table(LauncherSchema::MEMBERSHIPS)->updateOrInsert(['uid' => $target->uid], [
                 'role' => in_array($role, ['admin', 'super_admin'], true) ? 'normal' : $role,
@@ -76,6 +79,7 @@ final class Membership
                 'before_value' => json_encode($before, JSON_THROW_ON_ERROR),
                 'after_value' => json_encode($this->describe($target), JSON_THROW_ON_ERROR), 'created_at' => now(),
             ]);
+            $policy->forgetIdentities();
         });
     }
 }

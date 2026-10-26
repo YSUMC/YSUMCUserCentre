@@ -39,9 +39,11 @@ return function ($plugin) {
     app('translator')->addNamespace('sitmc-launcher', $path.'/lang');
     app('view')->addNamespace('sitmc-launcher', $path.'/views');
 
+    \SITMinecraft\Launcher\Access\BackendIntegration::boot();
+
     // Extend the existing users screen; disabling this plugin restores core UI.
-    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261026-2', ['admin/users']);
-    Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.css').'?v=20261026-2', ['admin/users']);
+    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261026-3', ['admin/users']);
+    Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.css').'?v=20261026-3', ['admin/users']);
 
     app()->singleton(PackStore::class, function () {
         return new PackStore(Storage::disk(config('sitmc-launcher.disk', 'local')));

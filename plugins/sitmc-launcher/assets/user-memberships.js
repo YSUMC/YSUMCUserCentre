@@ -115,6 +115,7 @@
       if (control) {
         controls.set(control, { uid, native: true });
         control.title = '调整用户等级、部门或账号状态';
+        if (current && !current.error) control.hidden = current.account_editable === false && !current.editable;
         pencil?.remove();
       } else if (current?.editable) {
         if (!pencil) {
@@ -174,7 +175,7 @@
       const user = body.users[0];
       if (!user?.editable) {
         // Banned/auth-only accounts keep core's existing restoration flow.
-        if (user && native) {
+        if (user && native && user.account_editable !== false) {
           openCorePermission(button);
           return;
         }
@@ -237,7 +238,7 @@
     const actions = element('div', 'launcher-membership-actions');
     actions.append(cancel, save);
     let accountStatus;
-    if (native) {
+    if (native && user.account_editable !== false) {
       accountStatus = element('button', 'btn btn-outline-danger mr-auto', '封禁账号…');
       accountStatus.type = 'button';
       accountStatus.onclick = () => { dialog.close(); openCorePermission(opener); };

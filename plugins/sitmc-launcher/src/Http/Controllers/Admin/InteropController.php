@@ -72,7 +72,9 @@ final class InteropController
             'endpointUrl' => $base.'/api/launcher/interop/v1/site',
             'friendsUrl' => $base.'/api/launcher/friends',
             'syncUrl' => $syncUrl,
-            'cronCommand' => "*/5 * * * * curl -fsS -X POST --max-time 300 -H 'X-Interop-Token: ".$this->repository->syncToken()."' '".$syncUrl."' >/dev/null",
+            'cronCommand' => app(\SITMinecraft\Launcher\Access\BackendPolicy::class)->allows($request->user(), 'interop', 2)
+                ? "*/5 * * * * curl -fsS -X POST --max-time 300 -H 'X-Interop-Token: ".$this->repository->syncToken()."' '".$syncUrl."' >/dev/null"
+                : '只读权限不显示同步密钥。',
             'status' => session('sitmc_launcher_status'),
         ]);
     }

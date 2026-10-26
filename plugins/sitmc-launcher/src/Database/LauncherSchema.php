@@ -30,6 +30,8 @@ final class LauncherSchema
 
     public const MEMBERSHIP_AUDIT = 'sitmc_launcher_membership_audit';
 
+    public const BACKEND_AUDIT = 'sitmc_launcher_backend_audit';
+
     /**
      * mc-interop v1 tables. They are additive: the legacy manifest keeps reading
      * its own tables, and removing this plugin still removes everything.
@@ -202,6 +204,17 @@ final class LauncherSchema
             });
         }
 
+        if (! Schema::hasTable(self::BACKEND_AUDIT)) {
+            Schema::create(self::BACKEND_AUDIT, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->string('group_key', 64);
+                $table->unsignedInteger('actor_uid');
+                $table->text('before_value');
+                $table->text('after_value');
+                $table->timestamp('created_at');
+            });
+        }
+
         if (! Schema::hasColumn(self::RELEASES, 'sha256')) {
             Schema::table(self::RELEASES, static function (Blueprint $table): void {
                 $table->string('sha256', 64)->nullable();
@@ -324,6 +337,7 @@ final class LauncherSchema
         self::$installed = false;
 
         Schema::dropIfExists(self::MEMBERSHIP_AUDIT);
+        Schema::dropIfExists(self::BACKEND_AUDIT);
         Schema::dropIfExists(self::MEMBERSHIPS);
         Schema::dropIfExists(self::INTEROP_ENDPOINTS);
         Schema::dropIfExists(self::INTEROP_SERVERS);

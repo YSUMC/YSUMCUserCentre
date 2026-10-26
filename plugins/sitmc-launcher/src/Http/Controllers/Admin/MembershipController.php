@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use SITMinecraft\Launcher\Access\Membership;
+use SITMinecraft\Launcher\Access\BackendPolicy;
 
 final class MembershipController
 {
@@ -14,13 +15,13 @@ final class MembershipController
 
     public function index(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        abort_unless(app(BackendPolicy::class)->allows($request->user(), 'users'), 403);
         return redirect()->to(url('admin/users'));
     }
 
     public function data(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        abort_unless(app(BackendPolicy::class)->allows($request->user(), 'users'), 403);
         $input = $request->validate([
             'uids' => ['required', 'array', 'min:1', 'max:100'],
             'uids.*' => ['required', 'integer', 'min:1', 'distinct'],
@@ -35,7 +36,7 @@ final class MembershipController
 
     public function update(Request $request, int $uid): RedirectResponse|JsonResponse
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        abort_unless(app(BackendPolicy::class)->allows($request->user(), 'users', 2), 403);
         $values = $request->validate(['role' => ['required', 'string', 'in:'.implode(',', array_keys(Membership::ROLES))],
             'department' => ['nullable', 'string', 'in:'.implode(',', array_keys(Membership::DEPARTMENTS))]]);
         $user = User::findOrFail($uid);
@@ -52,13 +53,35 @@ final class MembershipController
     {
         $membership = $this->memberships->describe($user);
         $isSuper = $actor->permission >= User::SUPER_ADMIN;
-        $editable = $user->permission >= User::NORMAL && ($isSuper || $user->permission < User::ADMIN);
+        $policy = app(BackendPolicy::class);
+        $editable = $user->permission >= User::NORMAL && $policy->allows($actor, 'users', 2)
+            && $policy->canManageTarget($actor, $user) && ($isSuper || $actor->uid !== $user->uid);
         $roles = $isSuper ? Membership::ROLES : array_slice(Membership::ROLES, 0, 4, true);
+        if (!$isSuper) {
+            $roles = array_filter($roles, function ($label, $role) use ($policy, $actor, $user) {
+                $departments = in_array($role, ['member', 'minister'], true) ? array_keys(Membership::DEPARTMENTS) : [null];
+                foreach ($departments as $department) if ($policy->canAssign($actor, $user, $role, $department)) return true;
+                return false;
+            }, ARRAY_FILTER_USE_BOTH);
+            $editable = $editable && $roles !== [];
+        }
         if ($actor->uid === $user->uid) {
             $roles = array_intersect_key($roles, [$membership['role'] => true]);
         }
 
         return ['uid' => $user->uid, 'nickname' => $user->nickname, 'membership' => $membership,
-            'editable' => $editable, 'roles' => $roles];
+            'editable' => $editable, 'roles' => $roles, 'account_editable' => $actor->uid !== $user->uid
+                && $policy->allows($actor, 'users', 2) && $policy->canManageTarget($actor, $user)];
+    }
+
+    public function userManagement(Request $request)
+    {
+        $policy = app(BackendPolicy::class);
+        abort_unless($policy->allows($request->user(), 'users'), 403);
+        $user = $request->user();
+        $display = $user->toArray();
+        // This DTO only controls core frontend buttons; no model is promoted.
+        if ($policy->allows($user, 'users', 2)) $display['permission'] = max(1, $user->permission);
+        return view('sitmc-launcher::admin.users', ['displayUser' => $display]);
     }
 }

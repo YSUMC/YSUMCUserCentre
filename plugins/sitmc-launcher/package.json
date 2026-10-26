@@ -5,6 +5,9 @@
   "description": "启动器管理插件与 mc-interop v1 公开目录（YSUMC 适配）。",
   "author": "SIT-Minecraft",
   "namespace": "SITMinecraft\\Launcher",
+  "enchants": {
+    "config": "Http\\Controllers\\Admin\\BackendConfigController"
+  },
   "require": {
     "blessing-skin-server": "^6.0.0"
   }

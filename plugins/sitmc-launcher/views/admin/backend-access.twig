@@ -1,0 +1,42 @@
+{% extends 'admin.base' %}
+{% block title %}后台访问权限{% endblock %}
+{% block content %}
+  {% if status %}<div class="callout callout-success">{{ status }}</div>{% endif %}
+  {% if errors is defined and errors.any() %}<div class="callout callout-danger">{% for error in errors.all() %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">按等级与部门配置后台页签</h3></div>
+    <div class="card-body">
+      <p>每人只使用其当前等级和部门对应的一组权限，不叠加其他组。超级管理员始终可访问全部后台功能，不参与配置。</p>
+      <form method="get" class="form-inline mb-3">
+        <label for="access-group" class="mr-2">选择权限组</label>
+        <select id="access-group" name="group" class="form-control mr-2">{% for key, label in groups %}<option value="{{ key }}" {{ group == key ? 'selected' : '' }}>{{ label }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-secondary">切换权限组</button>
+      </form>
+      <div class="alert alert-info">不可访问：隐藏页签并拒绝接口请求。只读：可查看和搜索，不能提交更改。可管理：可使用该页签的管理功能，账号操作仍受等级与权限保护。</div>
+      <form method="post" action="{{ url('admin/plugins/config/sitmc-launcher') }}">
+        {{ csrf_field() }}
+        <input type="hidden" name="group" value="{{ group }}">
+        <input type="hidden" name="revision" value="{{ revision }}">
+        <h4>{{ groups[group] }}</h4>
+        {% for section, modules in sections %}
+          <h5 class="mt-4">{{ section }}</h5>
+          <div class="table-responsive"><table class="table table-bordered">
+            <thead><tr><th style="width:60%">功能页签</th><th>访问权限</th></tr></thead>
+            <tbody>{% for module in modules %}<tr>
+              <td><label for="access-{{ module.key }}" class="mb-0">{{ module.label }}</label>{% if module.note %}<small class="d-block text-muted">{{ module.note }}</small>{% endif %}</td>
+              <td><select id="access-{{ module.key }}" name="permissions[{{ module.key }}]" class="form-control">
+                {% for value, label in levels %}<option value="{{ value }}" {{ module.value == value ? 'selected' : '' }} {{ value > module.max ? 'disabled' : '' }}>{{ label }}</option>{% endfor %}
+              </select></td>
+            </tr>{% endfor %}</tbody>
+          </table></div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">保存 {{ groups[group] }} 的权限</button>
+      </form>
+    </div>
+  </div>
+  <div class="card"><div class="card-header"><h3 class="card-title">最近配置记录</h3></div><div class="card-body table-responsive">
+    <table class="table"><thead><tr><th>权限组</th><th>操作人 UID</th><th>时间</th></tr></thead><tbody>
+    {% for entry in history %}<tr><td>{{ groups[entry.group_key]|default(entry.group_key) }}</td><td>{{ entry.actor_uid }}</td><td>{{ entry.created_at }}</td></tr>{% else %}<tr><td colspan="3">尚未修改权限，当前采用默认设置。</td></tr>{% endfor %}
+    </tbody></table>
+  </div></div>
+{% endblock %}
