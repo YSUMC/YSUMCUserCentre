@@ -1,0 +1,110 @@
+{% extends 'admin.base' %}
+
+{% block title %}{{ brandLabel }} · {{ trans('mutmc-launcher::launcher.releases.title') }}{% endblock %}
+
+{% block content %}
+  {% include 'mutmc-launcher::admin.distribution-nav' with {activeTab: 'releases'} %}
+
+  {% if status %}
+    <div class="callout callout-success">{{ status }}</div>
+  {% endif %}
+
+  <div class="card card-primary">
+    <div class="card-header">
+      <h3 class="card-title">{{ trans('mutmc-launcher::launcher.releases.title') }}</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted">
+        {{ trans('mutmc-launcher::launcher.releases.intro', {path: latestPath}) }}
+      </p>
+
+      {% if releases is empty %}
+        <div class="callout callout-info">
+          {{ trans('mutmc-launcher::launcher.releases.empty') }}
+        </div>
+      {% else %}
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>{{ trans('mutmc-launcher::launcher.field.channel') }}</th>
+              <th>{{ trans('mutmc-launcher::launcher.field.version') }}</th>
+              <th>{{ trans('mutmc-launcher::launcher.field.pub_date') }}</th>
+              <th>{{ trans('mutmc-launcher::launcher.field.platform') }}</th>
+              <th>{{ trans('mutmc-launcher::launcher.releases.state') }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in releases %}
+              <tr>
+                <td>
+                  {{ trans('mutmc-launcher::launcher.channel.' ~ row.channel) }}
+                  {% if not row.enabled %}
+                    <span class="badge bg-secondary">
+                      {{ trans('mutmc-launcher::launcher.releases.disabled') }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td><code>{{ row.version }}</code></td>
+                <td>{{ row.pub_date }}</td>
+                <td>
+                  {% if row.target or row.arch %}
+                    {{ row.target ?: '*' }} / {{ row.arch ?: '*' }}
+                  {% else %}
+                    {{ trans('mutmc-launcher::launcher.releases.every-platform') }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if row.metadata_problem %}
+                    <span class="badge bg-danger">
+                      {{ trans('mutmc-launcher::launcher.problem.' ~ row.metadata_problem) }}
+                    </span>
+                  {% elseif row.artifact_problem %}
+                    <span class="badge bg-warning">
+                      {{ trans('mutmc-launcher::launcher.problem.' ~ row.artifact_problem) }}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-success">
+                      {{ trans('mutmc-launcher::launcher.releases.installable') }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a
+                    class="btn btn-sm btn-default"
+                    href="{{ route(adminRoutePrefix ~ 'releases.edit', {id: row.id}) }}"
+                  >
+                    {{ trans('mutmc-launcher::launcher.action.edit') }}
+                  </a>
+                  <form
+                    class="d-inline"
+                    method="post"
+                    action="{{ route(adminRoutePrefix ~ 'releases.destroy', {id: row.id}) }}"
+                    onsubmit="return confirm('{{ trans('mutmc-launcher::launcher.releases.confirm-delete') }}')"
+                  >
+                    {{ csrf_field() }}
+                    {{ method_field('DELETE') }}
+                    <button class="btn btn-sm btn-danger" type="submit">
+                      {{ trans('mutmc-launcher::launcher.action.delete') }}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+    <div class="card-footer">
+      <a class="btn btn-primary" href="{{ route(adminRoutePrefix ~ 'releases.create') }}">
+        {{ trans('mutmc-launcher::launcher.releases.create') }}
+      </a>
+      <a class="btn btn-default float-right" href="{{ route(adminRoutePrefix ~ 'announcements.index') }}">
+        {{ trans('mutmc-launcher::launcher.announcements.menu') }}
+      </a>
+      <a class="btn btn-default float-right mr-2" href="{{ route(adminIndexRoute) }}">
+        {{ trans('mutmc-launcher::launcher.menu') }}
+      </a>
+    </div>
+  </div>
+{% endblock %}

@@ -49,7 +49,7 @@ final class BackendPolicy
         }
         foreach (['ysumc' => 'YSUMC 启动器', 'mutmc' => 'MUTMC 启动器'] as $brand => $label) {
             $base = 'admin/launcher'.($brand === 'mutmc' ? '/mutmc' : '');
-            $add($brand.'_instances', '实例、整合包与更新策略', $label, $base, [$base.'/instances', $base.'/settings']);
+            $add($brand.'_instances', '实例、整合包与更新策略', $label, $base, array_merge([$base.'/instances', $base.'/settings'], $brand === 'mutmc' ? ['admin/plugins/config/mutmc-launcher'] : []));
             $add($brand.'_announcements', '公告', $label, $base.'/announcements', [$base.'/announcements']);
             $add($brand.'_releases', '启动器版本', $label, $base.'/releases', [$base.'/releases']);
         }
@@ -60,7 +60,7 @@ final class BackendPolicy
         $add('market', '插件市场', '系统维护', 'admin/plugins/market', ['admin/plugins/market'], 1, '安装插件仅超级管理员可操作。');
         $add('update', '系统升级', '系统维护', 'admin/update', ['admin/update'], 0, '沿用核心限制，仅超级管理员可访问。');
         foreach (app(PluginManager::class)->getEnabledPlugins() as $plugin) {
-            if ($plugin->name === 'sitmc-launcher' || !$plugin->hasConfig()) continue;
+            if (in_array($plugin->name, ['sitmc-launcher', 'mutmc-launcher'], true) || !$plugin->hasConfig()) continue;
             $prefixes = ['admin/plugins/config/'.$plugin->name];
             if ($plugin->name === 'restricted-email-domains') $prefixes[] = 'admin/restricted-email-domains';
             $secret = $plugin->name === 'yggdrasil-connect';

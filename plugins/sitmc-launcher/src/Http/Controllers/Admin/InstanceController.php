@@ -53,7 +53,7 @@ final class InstanceController
     public function create(Request $request): View|RedirectResponse
     {
         if ($request->query('brand') === 'mutmc' && $this->distributionBrand($request) !== 'mutmc') {
-            return redirect()->route('sitmc-launcher.admin.mutmc.create');
+            return redirect('admin/launcher/mutmc/instances/create');
         }
 
         return view('sitmc-launcher::admin.instance', [

@@ -2,3 +2,5 @@
 !.gitignore
 !sitmc-launcher/
 !sitmc-launcher/**
+!mutmc-launcher/
+!mutmc-launcher/**

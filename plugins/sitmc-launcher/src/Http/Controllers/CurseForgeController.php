@@ -20,11 +20,6 @@ final class CurseForgeController
     }
 
     /** Public Minecraft catalog only; never send Microsoft credentials to this service. */
-    public function mutmc(Request $request, string $path): Response
-    {
-        return $this->forward($request, $path);
-    }
-
     private function forward(Request $request, string $path): Response
     {
         $body = $request->isMethod('POST') ? $request->json()->all() : null;

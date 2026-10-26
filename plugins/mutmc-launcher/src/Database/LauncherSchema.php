@@ -1,0 +1,204 @@
+<?php
+
+namespace MUTMC\Launcher\Database;
+
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * Tables owned by this plugin.
+ *
+ * A Blessing Skin installation runs the core migration set on its own schedule,
+ * so the plugin keeps creating its tables idempotently instead of depending on
+ * the core migration runner. Every check is a `hasTable` guard, which makes the
+ * call safe to repeat on every request that boots the plugin.
+ */
+final class LauncherSchema
+{
+    public const INSTANCES = 'mutmc_launcher_instances';
+
+    public const PACKS = 'mutmc_launcher_packs';
+
+    public const SETTINGS = 'mutmc_launcher_settings';
+
+    public const ANNOUNCEMENTS = 'mutmc_launcher_announcements';
+
+    public const RELEASES = 'mutmc_launcher_releases';
+
+    private static bool $installed = false;
+
+    public static function install(): void
+    {
+        if (self::$installed && Schema::hasTable(self::INSTANCES)) {
+            return;
+        }
+
+        // MySQL DDL commits implicitly, so a transaction cannot serialize an
+        // upgrade across concurrent FPM workers. Keep the advisory lock on the
+        // same connection for the entire additive migration.
+        $connection = DB::connection();
+        $lock = null;
+        if (in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $lock = 'mutmc-schema-'.substr(hash('sha256', $connection->getDatabaseName().$connection->getTablePrefix()), 0, 40);
+            if ((int) $connection->selectOne('SELECT GET_LOCK(?, 30) AS acquired', [$lock])->acquired !== 1) {
+                throw new \RuntimeException('Launcher schema upgrade is busy; retry after it completes.');
+            }
+        }
+        try {
+            self::installTables();
+        } finally {
+            if ($lock !== null) {
+                $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$lock]);
+            }
+        }
+    }
+
+    private static function installTables(): void
+    {
+
+        if (! Schema::hasTable(self::INSTANCES)) {
+            Schema::create(self::INSTANCES, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->string('instance_id', 128)->unique();
+                $table->string('name', 128);
+                $table->text('description')->nullable();
+                $table->string('icon_url', 512)->nullable();
+                $table->integer('sort')->default(0);
+                $table->unsignedInteger('revision')->default(1);
+                $table->string('game_version', 64);
+                $table->string('loader', 32)->nullable();
+                $table->string('loader_version', 64)->nullable();
+                $table->string('server_address', 255)->nullable();
+                $table->unsignedSmallInteger('server_port')->nullable();
+                $table->boolean('required')->default(true);
+                $table->boolean('enabled')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasColumn(self::INSTANCES, 'opened_on')) {
+            Schema::table(self::INSTANCES, static function (Blueprint $table): void {
+                $table->date('opened_on')->nullable();
+            });
+        }
+
+        if (! Schema::hasColumn(self::INSTANCES, 'distribution_brand')) {
+            Schema::table(self::INSTANCES, static function (Blueprint $table): void {
+                $table->string('distribution_brand', 16)->default('mutmc')->index();
+            });
+        }
+
+        if (! Schema::hasTable(self::PACKS)) {
+            Schema::create(self::PACKS, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->string('instance_id', 128);
+                $table->unsignedInteger('revision');
+                $table->string('url', 512)->nullable();
+                $table->string('disk_path', 512)->nullable();
+                $table->string('original_name', 255)->nullable();
+                $table->string('sha1', 40);
+                $table->unsignedBigInteger('size');
+                $table->timestamps();
+
+                $table->unique(['instance_id', 'revision']);
+            });
+        }
+
+        if (! Schema::hasTable(self::SETTINGS)) {
+            Schema::create(self::SETTINGS, static function (Blueprint $table): void {
+                $table->string('name', 64)->primary();
+                $table->text('value')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable(self::ANNOUNCEMENTS)) {
+            Schema::create(self::ANNOUNCEMENTS, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->string('announcement_id', 100)->unique();
+                $table->string('title', 120);
+                $table->string('summary', 300)->nullable();
+                $table->mediumText('content');
+                $table->string('type', 16)->default('notification');
+                $table->string('priority', 16)->default('normal');
+                $table->timestamp('starts_at')->nullable();
+                $table->timestamp('ends_at')->nullable();
+                $table->timestamp('published_at')->nullable();
+                $table->string('action_url', 512)->nullable();
+                $table->string('action_label', 80)->nullable();
+                $table->boolean('enabled')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable(self::RELEASES)) {
+            Schema::create(self::RELEASES, static function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->string('channel', 16);
+                $table->string('version', 64);
+                $table->mediumText('notes')->nullable();
+                $table->timestamp('pub_date')->nullable();
+                $table->string('url', 512)->nullable();
+                $table->text('signature')->nullable();
+                $table->string('target', 64)->nullable();
+                $table->string('arch', 64)->nullable();
+                $table->boolean('enabled')->default(true);
+                $table->timestamps();
+
+                $table->index(['channel', 'enabled']);
+            });
+        }
+        foreach ([self::RELEASES, self::ANNOUNCEMENTS] as $tableName) {
+            if (! Schema::hasColumn($tableName, 'distribution_brand')) {
+                Schema::table($tableName, static function (Blueprint $table): void {
+                    $table->string('distribution_brand', 16)->default('mutmc')->index();
+                });
+            }
+        }
+
+        foreach ([self::INSTANCES, self::ANNOUNCEMENTS, self::RELEASES] as $tableName) {
+            if (! Schema::hasColumn($tableName, 'audience_roles')) {
+                Schema::table($tableName, static fn (Blueprint $table) => $table->text('audience_roles')->nullable());
+            }
+        }
+        if (! Schema::hasColumn(self::RELEASES, 'sha256')) {
+            Schema::table(self::RELEASES, static function (Blueprint $table): void {
+                $table->string('sha256', 64)->nullable();
+                $table->unsignedBigInteger('size')->nullable();
+                $table->string('artifact_kind', 16)->default('nsis');
+            });
+        }
+
+
+        if (! Schema::hasColumn(self::PACKS, 'sha512')) {
+            Schema::table(self::PACKS, static function (Blueprint $table): void {
+                $table->string('sha512', 128)->nullable();
+                $table->string('format', 32)->default('mrpack');
+            });
+        }
+        if (! Schema::hasColumn(self::PACKS, 'game_version')) {
+            Schema::table(self::PACKS, static function (Blueprint $table): void {
+                $table->string('game_version', 64)->nullable();
+                $table->string('loader', 32)->nullable();
+                $table->string('loader_version', 64)->nullable();
+            });
+        }
+
+        self::$installed = true;
+    }
+
+    /**
+     * Drops everything the plugin created. Only the plugin's own tables are
+     * touched, so a Blessing Skin installation keeps its users and players.
+     */
+    public static function uninstall(): void
+    {
+        self::$installed = false;
+
+        Schema::dropIfExists(self::RELEASES);
+        Schema::dropIfExists(self::ANNOUNCEMENTS);
+        Schema::dropIfExists(self::PACKS);
+        Schema::dropIfExists(self::INSTANCES);
+        Schema::dropIfExists(self::SETTINGS);
+    }
+}

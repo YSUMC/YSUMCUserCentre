@@ -9,15 +9,11 @@ trait ScopesDistribution
 {
     private function distributionBrand(Request $request): string
     {
-        return $request->route('distributionBrand') === 'mutmc' ? 'mutmc' : 'ysumc';
+        return 'ysumc';
     }
 
     private function adminRouteName(Request $request, string $suffix): string
     {
-        if ($this->distributionBrand($request) === 'mutmc') {
-            return 'sitmc-launcher.admin.mutmc'.($suffix === 'index' ? '' : '.'.$suffix);
-        }
-
         return 'sitmc-launcher.admin.'.$suffix;
     }
 
@@ -27,8 +23,8 @@ trait ScopesDistribution
 
         return [
             'distributionBrand' => $brand,
-            'brandLabel' => $brand === 'mutmc' ? 'MUTMCL' : 'YSUMC',
-            'adminRoutePrefix' => 'sitmc-launcher.admin.'.($brand === 'mutmc' ? 'mutmc.' : ''),
+            'brandLabel' => 'YSUMC',
+            'adminRoutePrefix' => 'sitmc-launcher.admin.',
             'adminIndexRoute' => $this->adminRouteName($request, 'index'),
         ];
     }

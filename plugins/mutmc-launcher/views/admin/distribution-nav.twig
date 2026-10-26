@@ -1,0 +1,7 @@
+<h2>{{ brandLabel }} · {{ trans('mutmc-launcher::launcher.distribution.title') }}</h2>
+<p class="text-muted">{{ trans('mutmc-launcher::launcher.distribution.intro', {brand: brandLabel}) }}</p>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'instances' ? 'active' : '' }}" href="{{ route(adminIndexRoute) }}">{{ trans('mutmc-launcher::launcher.tab.instances') }}</a></li>
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'announcements' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'announcements.index') }}">{{ trans('mutmc-launcher::launcher.tab.announcements') }}</a></li>
+  <li class="nav-item"><a class="nav-link {{ activeTab == 'releases' ? 'active' : '' }}" href="{{ route(adminRoutePrefix ~ 'releases.index') }}">{{ trans('mutmc-launcher::launcher.tab.releases') }}</a></li>
+</ul>

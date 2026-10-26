@@ -1,8 +1,8 @@
 {
   "name": "sitmc-launcher",
-  "version": "1.3.2",
-  "title": "YSUMC Launcher",
-  "description": "启动器管理插件与 mc-interop v1 公开目录（YSUMC 适配）。",
+  "version": "1.4.0",
+  "title": "YSUMCL 启动器与用户权限",
+  "description": "YSUMCL 启动器、友站互联、用户分级及后台权限；MUTMC 已拆为独立插件。",
   "author": "SIT-Minecraft",
   "namespace": "SITMinecraft\\Launcher",
   "enchants": {

@@ -1,13 +1,13 @@
 <?php
 
-namespace SITMinecraft\Launcher\Http\Controllers;
+namespace MUTMC\Launcher\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
-use SITMinecraft\Launcher\Manifest\LauncherRepository;
-use SITMinecraft\Launcher\Manifest\ManifestBuilder;
-use SITMinecraft\Launcher\Interop\InteropRules;
+use MUTMC\Launcher\Manifest\LauncherRepository;
+use MUTMC\Launcher\Manifest\ManifestBuilder;
+use MUTMC\Launcher\Interop\InteropRules;
 
 /** A separate catalog, backed by the same pack storage and publication rules. */
 final class MutmcController
@@ -45,7 +45,7 @@ final class MutmcController
         $rows = array_values(array_filter($this->repository->rows('mutmc'),
             static fn ($row) => ($row['pack_format'] ?? 'mrpack') === 'mrpack'));
         $request ??= request();
-        $audience = app(\SITMinecraft\Launcher\Access\Audience::class);
+        $audience = app(\MUTMC\Launcher\Access\Audience::class);
         $rows = $audience->filter($rows, $request);
         $settings = $audience->settings($this->repository->settings('mutmc'), $request, 'mutmc');
         $publishedAt = 0;

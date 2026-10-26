@@ -1,0 +1,17 @@
+{
+  "name": "mutmc-launcher",
+  "version": "1.0.0",
+  "title": "MUTMC 启动器",
+  "description": "独立管理 MUTMC 实例、整合包、公告和启动器版本；兼容现有用户分级与后台权限。",
+  "author": "YSUMC; based on SIT-Minecraft",
+  "namespace": "MUTMC\\Launcher",
+  "enchants": {
+    "config": "Http\\Controllers\\Admin\\ConfigController",
+    "conflicts": {
+      "sitmc-launcher": "<1.4.0"
+    }
+  },
+  "require": {
+    "blessing-skin-server": "^6.0.0"
+  }
+}

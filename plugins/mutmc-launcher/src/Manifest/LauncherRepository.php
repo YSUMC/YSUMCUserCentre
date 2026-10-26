@@ -1,0 +1,297 @@
+<?php
+
+namespace MUTMC\Launcher\Manifest;
+
+use Illuminate\Support\Facades\DB;
+use MUTMC\Launcher\Database\LauncherSchema;
+
+/**
+ * Reads and writes the tables this plugin owns.
+ *
+ * The repository returns plain arrays in the shape {@see ManifestBuilder}
+ * expects, so the manifest document never depends on how the rows are stored.
+ * Every entry point resolves this class before it touches the database, which is
+ * why the schema is ensured here: a plugin that was enabled while the app was
+ * already booted still gets its tables on the first request.
+ */
+final class LauncherRepository
+{
+    private const SETTING_KEYS = ['min_version', 'latest_version', 'force_update', 'cloud_map_url'];
+
+    public function __construct()
+    {
+        LauncherSchema::install();
+    }
+
+    /**
+     * Every instance joined with the pack of its current revision.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function rows(string $brand = 'mutmc'): array
+    {
+        return $this->instanceQuery()
+            ->where('i.distribution_brand', $brand)
+            ->orderBy('i.sort')
+            ->orderBy('i.name')
+            ->get(self::ROW_COLUMNS)
+            ->map(static fn ($row): array => self::normalize($row))
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function row(string $instanceId): ?array
+    {
+        $row = $this->instanceQuery()
+            ->where('i.instance_id', $instanceId)
+            ->first(self::ROW_COLUMNS);
+
+        return $row === null ? null : self::normalize($row);
+    }
+
+    /**
+     * Launcher update policy published alongside the instances.
+     *
+     * @return array{min_version: ?string, latest_version: ?string, force_update: bool}
+     */
+    public function settings(string $brand = 'mutmc'): array
+    {
+        $prefix = $brand === 'mutmc' ? 'mutmc.' : '';
+        $stored = DB::table(LauncherSchema::SETTINGS)
+            ->whereIn('name', array_map(static fn ($key) => $prefix.$key, self::SETTING_KEYS))
+            ->pluck('value', 'name')
+            ->mapWithKeys(static fn ($value, $key) => [substr($key, strlen($prefix)) => $value]);
+
+        $text = static function (string $key) use ($stored): ?string {
+            $value = trim((string) ($stored[$key] ?? ''));
+
+            return $value === '' ? null : $value;
+        };
+
+        return [
+            'min_version' => $text('min_version'),
+            'latest_version' => $text('latest_version'),
+            'cloud_map_url' => $text('cloud_map_url'),
+            'force_update' => ($stored['force_update'] ?? null) === '1',
+        ];
+    }
+
+    /**
+     * @param  array{min_version?: ?string, latest_version?: ?string, force_update?: bool}  $values
+     */
+    public function saveSettings(array $values, string $brand = 'mutmc'): void
+    {
+        $rows = [
+            'min_version' => trim((string) ($values['min_version'] ?? '')),
+            'latest_version' => trim((string) ($values['latest_version'] ?? '')),
+            'cloud_map_url' => trim((string) ($values['cloud_map_url'] ?? '')),
+            'force_update' => ($values['force_update'] ?? false) ? '1' : '0',
+        ];
+
+        foreach ($rows as $name => $value) {
+            DB::table(LauncherSchema::SETTINGS)->updateOrInsert(
+                ['name' => ($brand === 'mutmc' ? 'mutmc.' : '').$name],
+                ['value' => $value]
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public function saveInstance(array $values): void
+    {
+        $id = (string) $values['instance_id'];
+        $existing = DB::table(LauncherSchema::INSTANCES)->where('instance_id', $id)->exists();
+
+        if ($existing) {
+            DB::table(LauncherSchema::INSTANCES)->where('instance_id', $id)->update($values);
+        } else {
+            DB::table(LauncherSchema::INSTANCES)->insert($values);
+        }
+    }
+
+    public function deleteInstance(string $instanceId): void
+    {
+        DB::transaction(function () use ($instanceId): void {
+            DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            // Do not let a new instance with a reused ID inherit an old public
+            // selection or endpoint configuration.
+            foreach ([LauncherSchema::PACKS, LauncherSchema::INSTANCES] as $table) {
+                DB::table($table)->where('instance_id', $instanceId)->delete();
+            }
+        });
+    }
+
+    /**
+     * Pack history of one instance, newest revision first.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function packs(string $instanceId): array
+    {
+        return DB::table(LauncherSchema::PACKS)
+            ->where('instance_id', $instanceId)
+            ->orderByDesc('revision')
+            ->get()
+            ->map(static fn ($row): array => (array) $row)
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function pack(string $instanceId, int $revision): ?array
+    {
+        $row = DB::table(LauncherSchema::PACKS)
+            ->where('instance_id', $instanceId)
+            ->where('revision', $revision)
+            ->first();
+
+        return $row === null ? null : (array) $row;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public function savePack(string $instanceId, int $revision, array $values): void
+    {
+        $values['instance_id'] = $instanceId;
+        $values['revision'] = $revision;
+
+        DB::transaction(function () use ($instanceId, $revision, $values): void {
+            $instance = DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            if ($instance === null || $revision <= max((int) $instance->revision, $this->highestRevision($instanceId))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['revision' => '版本号必须递增，请刷新页面后重试。']);
+            }
+            $values += ['game_version' => $instance->game_version, 'loader' => $instance->loader, 'loader_version' => $instance->loader_version];
+            DB::table(LauncherSchema::PACKS)->insert($values);
+        });
+    }
+
+    public function deletePack(string $instanceId, int $revision): void
+    {
+        DB::transaction(function () use ($instanceId, $revision): void {
+            $instance = DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            if ($instance !== null && (int) $instance->revision === $revision) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'revision' => '不能删除正在发布的整合包，请先发布或启用其他版本。',
+                ]);
+            }
+            DB::table(LauncherSchema::PACKS)->where('instance_id', $instanceId)->where('revision', $revision)->delete();
+        });
+    }
+
+    /**
+     * Highest revision the instance has ever published, so an edit can bump it.
+     */
+    public function highestRevision(string $instanceId): int
+    {
+        return (int) DB::table(LauncherSchema::PACKS)
+            ->where('instance_id', $instanceId)
+            ->max('revision');
+    }
+
+    /**
+     * Publishes one revision as the current one. Clients compare this value with
+     * the revision they installed, so changing it is what forces an update.
+     */
+    public function setRevision(string $instanceId, int $revision): void
+    {
+        DB::table(LauncherSchema::INSTANCES)
+            ->where('instance_id', $instanceId)
+            ->where('revision', '<', $revision)
+            ->update(['revision' => max(0, $revision), 'updated_at' => now()]);
+    }
+
+    /** Roll back content by publishing it under a new, increasing revision. */
+    public function republishPack(string $instanceId, int $revision): int
+    {
+        return DB::transaction(function () use ($instanceId, $revision): int {
+            $instance = DB::table(LauncherSchema::INSTANCES)->where('instance_id', $instanceId)->lockForUpdate()->first();
+            $pack = $this->pack($instanceId, $revision);
+            if ($instance === null || $pack === null) {
+                throw new \RuntimeException('Pack no longer exists.');
+            }
+            if ((int) $instance->revision === $revision) {
+                return $revision;
+            }
+            if (empty($pack['game_version'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'revision' => '旧版本未保存游戏/加载器元数据，请重新上传或登记旧包生成新版本。',
+                ]);
+            }
+            $next = max((int) $instance->revision, $this->highestRevision($instanceId)) + 1;
+            unset($pack['id'], $pack['instance_id'], $pack['revision']);
+            $pack['created_at'] = now();
+            $pack['updated_at'] = now();
+            $this->savePack($instanceId, $next, $pack);
+            $this->setRevision($instanceId, $next);
+            $this->saveInstance(['instance_id' => $instanceId, 'game_version' => $pack['game_version'],
+                'loader' => $pack['loader'], 'loader_version' => $pack['loader_version']]);
+            return $next;
+        });
+    }
+
+    public function hasPackFileReference(?string $path): bool
+    {
+        return $path !== null && DB::table(LauncherSchema::PACKS)->where('disk_path', $path)->exists();
+    }
+
+    public static function instanceTable(): string
+    {
+        return LauncherSchema::INSTANCES;
+    }
+
+    private function instanceQuery()
+    {
+        return DB::table(LauncherSchema::INSTANCES.' as i')->leftJoin(
+            LauncherSchema::PACKS.' as p',
+            static function ($join): void {
+                $join->on('p.instance_id', '=', 'i.instance_id')
+                    ->on('p.revision', '=', 'i.revision');
+            }
+        );
+    }
+
+    /**
+     * Adds the manifest's own key for an instance. The manifest contract calls it
+     * `id`, while the table (and the admin screens) call it `instance_id`, so both
+     * names have to be present after a read.
+     *
+     * @return array<string, mixed>
+     */
+    private static function normalize(object|array $row): array
+    {
+        $row = (array) $row;
+        $row['id'] = (string) ($row['instance_id'] ?? '');
+
+        return $row;
+    }
+
+    private const ROW_COLUMNS = [
+        'i.instance_id',
+        'i.distribution_brand',
+        'i.audience_roles',
+        'p.format as pack_format',
+        'i.updated_at',
+        'i.name',
+        'i.description',
+        'i.icon_url',
+        'i.sort',
+        'i.revision',
+        'i.game_version',
+        'i.loader',
+        'i.loader_version',
+        'i.server_address',
+        'i.server_port',
+        'i.opened_on',
+        'i.required',
+        'i.enabled',
+        'p.url as pack_url',
+        'p.sha1 as pack_sha1',
+        'p.size as pack_size',
+    ];
+}
