@@ -39,6 +39,10 @@ return function ($plugin) {
     app('translator')->addNamespace('sitmc-launcher', $path.'/lang');
     app('view')->addNamespace('sitmc-launcher', $path.'/views');
 
+    // Extend the existing users screen; disabling this plugin restores core UI.
+    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261026-1', ['admin/users']);
+    Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.css').'?v=20261026-1', ['admin/users']);
+
     app()->singleton(PackStore::class, function () {
         return new PackStore(Storage::disk(config('sitmc-launcher.disk', 'local')));
     });
@@ -311,6 +315,7 @@ return function ($plugin) {
                 }
 
                 $router->get('users', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'index'])->name('sitmc-launcher.admin.memberships');
+                $router->get('users/data', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'data'])->name('sitmc-launcher.admin.memberships.data');
                 $router->put('users/{uid}', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'update'])->where('uid', '[0-9]+')->name('sitmc-launcher.admin.memberships.update');
 
                 // YSUMC interop remains outside the MUTMCL administration area.

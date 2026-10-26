@@ -1,0 +1,13 @@
+.launcher-membership { margin-top: .6rem; white-space: normal; }
+.launcher-membership .badge { margin: 0 .3rem .3rem 0; }
+.launcher-membership-heading { display: block; font-size: .8rem; color: #6c757d; }
+.launcher-membership-edit { display: block; padding: .1rem 0; font-size: .85rem; }
+.launcher-membership-dialog { width: min(460px, calc(100% - 2rem)); border: 0; border-radius: .4rem; padding: 1.5rem; color: #212529; background: #fff; box-shadow: 0 1rem 3rem #0005; }
+.launcher-membership-dialog::backdrop { background: #0008; }
+.launcher-membership-dialog h2 { font-size: 1.25rem; }
+.launcher-membership-dialog .form-group { margin-top: 1rem; }
+.launcher-membership-dialog label { display: block; }
+.launcher-membership-dialog .launcher-membership-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.25rem; }
+.launcher-membership-dialog [hidden] { display: none !important; }
+.dark-mode .launcher-membership-dialog { color: #fff; background: #343a40; }
+.dark-mode .launcher-membership-heading { color: #adb5bd; }
