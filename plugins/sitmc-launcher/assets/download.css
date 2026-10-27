@@ -1,0 +1,34 @@
+.launcher-download { max-width: 1120px; padding-bottom: 24px; }
+.launcher-download-hero {
+    display: flex; align-items: center; gap: 28px; padding: clamp(24px, 4vw, 44px);
+    margin-bottom: 24px; background: #1f296a; color: #fff; border-top: 4px solid #66cccc;
+}
+.launcher-download-hero > img { flex: 0 0 auto; background: #fff; padding: 6px; border-radius: 50%; }
+.launcher-download-hero h2 { color: #fff; font-size: clamp(24px, 3vw, 34px); margin: 0 0 12px; }
+.launcher-download-hero p { margin: 0; color: #e7edf9; }
+.launcher-download-hero .launcher-download-kicker { color: #9be3e3; letter-spacing: .12em; font-size: 12px; margin-bottom: 12px; }
+.launcher-download-grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 1.25fr); gap: 24px; }
+.launcher-download .card { margin-bottom: 24px; }
+.launcher-download .card-body { padding: clamp(22px, 3vw, 32px); }
+.launcher-download h3 { margin: 0 0 18px; font-size: 24px; }
+.launcher-download-label { display: inline-block; margin-bottom: 16px; padding: 3px 10px; background: #e5f7f7; color: #24585a; font-size: 13px; }
+.launcher-download .launcher-download-muted, .launcher-download-source { color: #666; }
+.launcher-download-source { font-size: 13px; overflow-wrap: anywhere; margin: 12px 0 0; }
+.launcher-download-installer .btn { margin-top: 24px; font-weight: 600; }
+.launcher-download-checksum { border-top: 1px solid #ddd; margin-top: 22px; padding-top: 16px; font-size: 13px; }
+.launcher-download-checksum summary { cursor: pointer; }
+.launcher-download-checksum code { display: block; overflow-wrap: anywhere; margin-top: 10px; color: #1f296a; }
+.launcher-download-steps ol { padding-left: 24px; margin-bottom: 24px; }
+.launcher-download-steps li { padding-left: 6px; margin-bottom: 18px; }
+.launcher-download-notes-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.9; }
+.dark-mode .launcher-download .launcher-download-muted,
+.dark-mode .launcher-download .launcher-download-source { color: #d0d5df; }
+.dark-mode .launcher-download-label { background: #24484b; color: #b8eeee; }
+.dark-mode .launcher-download-checksum { border-color: #59616b; }
+.dark-mode .launcher-download-checksum code { color: #a0e0e0; }
+@media (max-width: 767px) {
+    .launcher-download-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .launcher-download-hero { align-items: flex-start; gap: 18px; }
+    .launcher-download-hero > img { width: 56px; height: 56px; }
+}
+@media (max-width: 400px) { .launcher-download-hero { flex-direction: column; } }

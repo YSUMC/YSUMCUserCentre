@@ -1,0 +1,71 @@
+{% extends 'user.base' %}
+
+{% block title %}{{ trans('sitmc-launcher::launcher.download.title') }}{% endblock %}
+
+{% block content %}
+  <div class="launcher-download">
+    <section class="launcher-download-hero" aria-labelledby="launcher-download-heading">
+      <img src="{{ url('/ysumc/logo.svg') }}" alt="YSUMC" width="88" height="88">
+      <div>
+        <p class="launcher-download-kicker">YSUMC LAUNCHER</p>
+        <h2 id="launcher-download-heading">{{ trans('sitmc-launcher::launcher.download.heading') }}</h2>
+        <p>{{ trans('sitmc-launcher::launcher.download.intro') }}</p>
+      </div>
+    </section>
+
+    {% if session_get('launcher_download_unavailable') %}
+      <div class="callout callout-warning" role="status">{{ trans('sitmc-launcher::launcher.download.unavailable') }}</div>
+    {% endif %}
+
+    <div class="launcher-download-grid">
+      <section class="card launcher-download-installer">
+        <div class="card-body">
+          <span class="launcher-download-label">{{ trans('sitmc-launcher::launcher.download.stable') }}</span>
+          {% if release %}
+            <h3>YSUMC {{ release.version }}</h3>
+            <p>Windows 64 {{ trans('sitmc-launcher::launcher.download.bit') }}{% if release.size %} · {{ release.size }}{% endif %}</p>
+            <p class="launcher-download-muted">{{ trans('sitmc-launcher::launcher.download.published') }} {{ release.date }}</p>
+            {% if release.downloadable %}
+              <a class="btn btn-primary btn-block" href="{{ route('sitmc-launcher.download.latest') }}" rel="noreferrer">
+                <i class="fas fa-download mr-2" aria-hidden="true"></i>{{ trans('sitmc-launcher::launcher.download.button') }}
+              </a>
+              <p class="launcher-download-source">{{ trans('sitmc-launcher::launcher.download.source') }} {{ release.host }}</p>
+            {% else %}
+              <p class="callout callout-info">{{ trans('sitmc-launcher::launcher.download.unavailable') }}</p>
+            {% endif %}
+            {% if release.sha256 %}
+              <details class="launcher-download-checksum">
+                <summary>{{ trans('sitmc-launcher::launcher.download.checksum') }}</summary>
+                <code>{{ release.sha256 }}</code>
+              </details>
+            {% endif %}
+          {% else %}
+            <h3>{{ trans('sitmc-launcher::launcher.download.empty-title') }}</h3>
+            <p>{{ trans('sitmc-launcher::launcher.download.empty') }}</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="card launcher-download-steps">
+        <div class="card-body">
+          <h3>{{ trans('sitmc-launcher::launcher.download.steps-title') }}</h3>
+          <ol>
+            <li>{{ trans('sitmc-launcher::launcher.download.step-one') }}</li>
+            <li>{{ trans('sitmc-launcher::launcher.download.step-two') }}</li>
+            <li>{{ trans('sitmc-launcher::launcher.download.step-three') }}</li>
+          </ol>
+          <p class="launcher-download-muted">{{ trans('sitmc-launcher::launcher.download.upgrade') }}</p>
+        </div>
+      </section>
+    </div>
+
+    {% if release %}
+      <section class="card launcher-download-notes">
+        <div class="card-body">
+          <h3>{{ trans('sitmc-launcher::launcher.download.notes') }}</h3>
+          <div class="launcher-download-notes-text">{{ release.notes ?: trans('sitmc-launcher::launcher.download.no-notes') }}</div>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

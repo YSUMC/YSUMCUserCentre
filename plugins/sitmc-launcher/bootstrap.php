@@ -16,6 +16,7 @@ use SITMinecraft\Launcher\Http\Controllers\PackController;
 use SITMinecraft\Launcher\Http\Controllers\SkinController;
 use SITMinecraft\Launcher\Http\Controllers\CurseForgeController;
 use SITMinecraft\Launcher\Http\Controllers\UpdateController;
+use SITMinecraft\Launcher\Http\Controllers\DownloadController;
 use SITMinecraft\Launcher\Interop\InteropRepository;
 use SITMinecraft\Launcher\Interop\InteropRules;
 use SITMinecraft\Launcher\Interop\PeerAggregator;
@@ -88,8 +89,20 @@ return function ($plugin) {
         'icon' => 'fa-cube',
     ]);
 
+    Hook::addMenuItem('user', 1, [
+        'title' => 'sitmc-launcher::launcher.download.title',
+        'link' => 'user/launcher',
+        'icon' => 'fa-download',
+    ]);
+    Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/download.css').'?v=20261027-1', ['user/launcher*']);
+
 
     Hook::addRoute(function (Router $router) {
+        $router->group(['middleware' => ['web', 'authorize', 'auth-only', 'throttle:60,1'], 'prefix' => 'user/launcher'], function () use ($router) {
+            $router->get('', [DownloadController::class, 'index'])->name('sitmc-launcher.download.index');
+            $router->get('download', [DownloadController::class, 'download'])->name('sitmc-launcher.download.latest');
+        });
+
         // mc-interop v1 unified exit. Same bytes at the canonical well-known
         // path and at the plugin-visible mirror a reverse proxy can forward.
         // Nothing below the legacy `api/launcher` group changed.

@@ -1,6 +1,27 @@
 menu: "启动器实例"
 title: "YSUMC 启动器"
 
+download:
+  title: "启动器下载"
+  heading: "从这里，进入我们的世界。"
+  intro: "安装官方整合包，和大家一起进服。"
+  stable: "最新正式版"
+  bit: "位"
+  published: "更新于"
+  button: "下载 Windows 安装包"
+  source: "下载来源："
+  checksum: "查看 SHA-256 校验值"
+  unavailable: "最新版本的安装包暂未准备好，请稍后再试。"
+  empty-title: "暂时没有可下载的版本"
+  empty: "正式版发布后会显示在这里，稍后再来看看吧。"
+  steps-title: "三步开始游戏"
+  step-one: "下载安装包，运行后按提示完成安装。"
+  step-two: "打开启动器，使用你的 YSUMC 账号登录。"
+  step-three: "在首页安装官方整合包，完成后点击启动。"
+  upgrade: "已经安装过？也可以在启动器的“设置 → 更新”中检查新版本。"
+  notes: "这次更新了什么"
+  no-notes: "这个版本暂未填写更新说明。"
+
 tab:
   instances: "实例"
   announcements: "公告"

@@ -1,6 +1,27 @@
 menu: "Launcher"
 title: "SIT-Minecraft launcher"
 
+download:
+  title: "Launcher download"
+  heading: "Your way into our world."
+  intro: "Install the official modpack and join the community."
+  stable: "Latest stable release"
+  bit: "bit"
+  published: "Updated"
+  button: "Download Windows installer"
+  source: "Download source:"
+  checksum: "View SHA-256 checksum"
+  unavailable: "The latest installer is not ready yet. Please try again later."
+  empty-title: "No download available yet"
+  empty: "The stable release will appear here when it is published."
+  steps-title: "Start playing in three steps"
+  step-one: "Download and run the installer, then follow the installation steps."
+  step-two: "Open the launcher and sign in with your YSUMC account."
+  step-three: "Install the official modpack on the home page, then select Play."
+  upgrade: "Already installed? Check for updates in Settings → Updates in the launcher."
+  notes: "What’s new"
+  no-notes: "No release notes have been added for this version."
+
 tab:
   instances: "Instances"
   announcements: "Announcements"
