@@ -6,10 +6,37 @@ use App\Http\Controllers\UsersManagementController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Lorisleiva\LaravelSearchString\Exceptions\InvalidSearchStringException;
 use SITMinecraft\Launcher\Access\BackendPolicy;
 
 final class DelegatedUsersController extends UsersManagementController
 {
+    public function list(Request $request)
+    {
+        $input = $request->validate(['q' => ['nullable', 'string', 'max:16384'], 'page' => ['nullable', 'integer', 'min:1']]);
+        $term = trim($input['q'] ?? '');
+        $query = User::query();
+        try {
+            // Keep advanced filters, but do not silently return every account
+            // when a normal email or dotted nickname is rejected by the parser.
+            $query->getModel()->getSearchStringManager()->build($query, $term);
+        } catch (InvalidSearchStringException $exception) {
+            // Discard any partially applied advanced filters before retrying.
+            $pattern = '%'.addcslashes($term, '\\%_').'%';
+            $query = User::query()->where(fn ($nested) => $nested
+                ->where('email', 'like', $pattern)->orWhere('nickname', 'like', $pattern));
+        }
+        $query->orderBy('uid');
+        $page = (int) ($input['page'] ?? 1);
+        $results = (clone $query)->paginate(10, ['*'], 'page', $page);
+        // Also recover stale pages from clients with an older cached script.
+        if ($term !== '' && $page > 1 && $results->isEmpty() && $results->total() > 0) {
+            return $query->paginate(10, ['*'], 'page', 1);
+        }
+
+        return $results;
+    }
+
     public function __construct()
     {
         $this->middleware(function (Request $request, $next) {

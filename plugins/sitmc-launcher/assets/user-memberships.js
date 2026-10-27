@@ -11,6 +11,24 @@
   let scheduled = false;
   let departments = {};
   let opening = false;
+  let appliedSearch = '';
+
+  // Core keeps the current page when its search form is submitted. Use its
+  // first-page control so React updates both the page state and the query.
+  // Re-submitting the same query (including after a role edit) keeps the page.
+  container.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.matches('.card-header form')) return;
+    const query = form.querySelector('input[inputmode="search"]')?.value.trim() || '';
+    if (query === appliedSearch) return;
+    appliedSearch = query;
+    const first = Array.from(form.closest('.card').querySelectorAll('.pagination .page-link'))
+      .find(link => link.textContent.trim() === '1');
+    if (!first || first.closest('.page-item')?.classList.contains('active')) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    first.click();
+  }, true);
 
   function element(tag, className, text) {
     const node = document.createElement(tag);

@@ -41,7 +41,7 @@ return function ($plugin) {
     \SITMinecraft\Launcher\Access\BackendIntegration::boot();
 
     // Extend the existing users screen; disabling this plugin restores core UI.
-    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261026-3', ['admin/users']);
+    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261027-search1', ['admin/users']);
     Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.css').'?v=20261026-3', ['admin/users']);
 
     app()->singleton(PackStore::class, function () {
