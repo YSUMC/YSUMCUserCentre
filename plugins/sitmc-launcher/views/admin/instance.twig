@@ -333,6 +333,7 @@
           class="card card-secondary"
           method="post"
           action="{{ route(adminRoutePrefix ~ 'packs.external', {instanceId: instance.instance_id}) }}"
+          onsubmit="var button = this.querySelector('button[type=submit]'); button.disabled = true; button.textContent = button.dataset.busy;"
         >
           {{ csrf_field() }}
           <div class="card-header">
@@ -344,34 +345,19 @@
             </p>
             <div class="form-group">
               <label>{{ trans('sitmc-launcher::launcher.field.pack_url') }}</label>
-              <input class="form-control" name="url" placeholder="https://cdn.sitmc.club/pack.mrpack" required>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-8">
-                <label>{{ trans('sitmc-launcher::launcher.field.sha1') }}</label>
-                <input class="form-control" name="sha1" pattern="[0-9a-fA-F]{40}" {{ distributionBrand == 'mutmc' ? 'required' : '' }}>
-                <small class="form-text text-muted">
-                  {{ trans('sitmc-launcher::launcher.field.sha1-hint') }}
-                </small>
-              </div>
-              <div class="form-group col-md-4">
-                <label>{{ trans('sitmc-launcher::launcher.field.size') }}</label>
-                <input class="form-control" name="size" type="number" min="1">
-              </div>
+              <input class="form-control" type="url" name="url" value="{{ externalInput.url|default('') }}" placeholder="https://cdn.example.com/pack.mrpack" maxlength="512" required>
             </div>
           </div>
           <div class="card-body pt-0">
-            <label>{{ distributionBrand == 'mutmc' ? 'SHA-512（可选，SHA-1 必填）' : 'SHA-512 (SHA-1 / SHA-512 至少填写一个)' }}</label>
-            <input class="form-control mb-3" name="sha512" pattern="[0-9a-fA-F]{128}">
             <label>Artifact format</label>
             <select class="form-control" name="format">
               {% for format in (distributionBrand == 'mutmc' ? ['mrpack'] : ['mrpack', 'multimc', 'curseforge-zip', 'server-zip', 'raw']) %}
-                <option value="{{ format }}">{{ format }}</option>
+                <option value="{{ format }}" {{ externalInput.format|default('mrpack') == format ? 'selected' : '' }}>{{ format }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="card-footer">
-            <button class="btn btn-secondary" type="submit">
+            <button class="btn btn-secondary" type="submit" data-busy="{{ trans('sitmc-launcher::launcher.packs.external-busy') }}">
               {{ trans('sitmc-launcher::launcher.packs.external-button') }}
             </button>
           </div>

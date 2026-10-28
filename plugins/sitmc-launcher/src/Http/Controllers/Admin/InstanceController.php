@@ -10,6 +10,7 @@ use SITMinecraft\Launcher\Manifest\LauncherRepository;
 use SITMinecraft\Launcher\Manifest\ManifestBuilder;
 use SITMinecraft\Launcher\Manifest\ManifestRules;
 use SITMinecraft\Launcher\Manifest\PackStore;
+use SITMinecraft\Launcher\Manifest\ExternalPackInspector;
 
 /**
  * Admin screens for the launcher catalog.
@@ -96,6 +97,7 @@ final class InstanceController
             'packs' => $this->repository->packs($instanceId),
             'limits' => $this->uploadLimits(),
             'status' => session('sitmc_launcher_status'),
+            'externalInput' => $request->session()->getOldInput(),
         ] + $this->distributionViewData($request));
     }
 
@@ -180,34 +182,37 @@ final class InstanceController
 
         $values = $request->validate([
             'url' => ['required', 'string', 'max:512'],
-            'sha1' => [($this->repository->row($instanceId)['distribution_brand'] === 'mutmc' ? 'required' : 'nullable'), 'required_without:sha512', 'string', 'regex:/^[0-9a-fA-F]{40}$/'],
-            'sha512' => ['nullable', 'required_without:sha1', 'string', 'regex:/^[0-9a-fA-F]{128}$/'],
             'format' => ['nullable', ($this->repository->row($instanceId)['distribution_brand'] === 'mutmc' ? 'in:mrpack' : 'in:mrpack,multimc,curseforge-zip,server-zip,raw')],
-            'size' => ['required', 'integer', 'min:1'],
         ]);
 
+        $values['url'] = trim($values['url']);
         $problem = ManifestRules::packUrlProblem($values['url']);
-        try {
-            app(\SITMinecraft\Launcher\Interop\PublicAddress::class)->checkUrl($values['url']);
-        } catch (\InvalidArgumentException $e) {
-            return back()->withErrors(['url' => $e->getMessage()]);
-        }
-
         if ($problem !== null) {
-            return back()->withErrors([
+            return back()->withInput($values)->withErrors([
                 'url' => trans('sitmc-launcher::launcher.problem.'.$problem),
             ]);
         }
 
+        try {
+            // Download once and compute authoritative values. Old forms may
+            // still submit manual hashes; those values are deliberately ignored.
+            $metadata = app(ExternalPackInspector::class)->inspect($values['url'], $values['format'] ?? 'mrpack');
+        } catch (\InvalidArgumentException) {
+            return back()->withInput($values)->withErrors(['url' => trans('sitmc-launcher::launcher.packs.error.remote-url')]);
+        } catch (RuntimeException $e) {
+            return back()->withInput($values)->withErrors(['url' => trans('sitmc-launcher::launcher.packs.error.'.$e->getMessage())]);
+        }
+
+        // No database writes or revision changes until the entire file is read.
         $revision = $this->nextRevision($instanceId);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($instanceId, $revision, $values): void {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($instanceId, $revision, $values, $metadata): void {
             $this->repository->savePack($instanceId, $revision, [
                 'url' => $values['url'],
-                'sha1' => strtolower($values['sha1'] ?? ''),
-                'sha512' => isset($values['sha512']) ? strtolower($values['sha512']) : null,
+                'sha1' => $metadata['sha1'],
+                'sha512' => $metadata['sha512'],
                 'format' => $values['format'] ?? 'mrpack',
-                'size' => $values['size'] ?? 0,
+                'size' => $metadata['size'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
