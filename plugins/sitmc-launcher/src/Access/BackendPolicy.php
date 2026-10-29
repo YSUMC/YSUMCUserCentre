@@ -83,6 +83,12 @@ final class BackendPolicy
 
     public function forgetIdentities(): void { $this->identities = []; }
 
+    public function refresh(): void
+    {
+        $this->matrix = null;
+        $this->forgetIdentities();
+    }
+
     public function defaults(): array
     {
         $matrix = [];

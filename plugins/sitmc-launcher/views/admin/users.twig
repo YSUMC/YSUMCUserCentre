@@ -3,4 +3,5 @@
 {% block before_foot %}
   {% set extra = {'currentUser': displayUser} %}
   <script id="blessing-extra" type="application/json">{{ extra|json_encode(15)|raw }}</script>
+  <script id="launcher-membership-csv" type="application/json">{{ membershipCsv|json_encode(15)|raw }}</script>
 {% endblock %}

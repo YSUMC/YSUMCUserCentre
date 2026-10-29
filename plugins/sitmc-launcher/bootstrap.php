@@ -42,7 +42,7 @@ return function ($plugin) {
     \SITMinecraft\Launcher\Access\BackendIntegration::boot();
 
     // Extend the existing users screen; disabling this plugin restores core UI.
-    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261027-search1', ['admin/users']);
+    Hook::addScriptFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.js').'?v=20261029-csv1', ['admin/users']);
     Hook::addStyleFileToPage(url('plugins/sitmc-launcher/assets/user-memberships.css').'?v=20261026-3', ['admin/users']);
 
     app()->singleton(PackStore::class, function () {
@@ -309,6 +309,8 @@ return function ($plugin) {
 
                 $router->get('users', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'index'])->name('sitmc-launcher.admin.memberships');
                 $router->get('users/data', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'data'])->name('sitmc-launcher.admin.memberships.data');
+                $router->get('users/export', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'exportCsv'])->name('sitmc-launcher.admin.memberships.export');
+                $router->post('users/import', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'importCsv'])->name('sitmc-launcher.admin.memberships.import');
                 $router->put('users/{uid}', [\SITMinecraft\Launcher\Http\Controllers\Admin\MembershipController::class, 'update'])->where('uid', '[0-9]+')->name('sitmc-launcher.admin.memberships.update');
 
                 // YSUMC interop remains outside the MUTMCL administration area.

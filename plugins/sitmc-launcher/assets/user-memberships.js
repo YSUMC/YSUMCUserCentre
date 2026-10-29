@@ -37,6 +37,84 @@
     return node;
   }
 
+  function mountCsvTools() {
+    const configNode = document.getElementById('launcher-membership-csv');
+    if (!configNode) return;
+    const config = JSON.parse(configNode.textContent);
+    const panel = element('div', 'px-2 pb-3');
+    const card = element('section', 'card mb-0');
+    card.setAttribute('aria-label', '用户权限 CSV');
+    const body = element('div', 'card-body');
+    const actions = element('div', 'd-flex flex-wrap align-items-center');
+    const download = element('a', 'btn btn-outline-primary mr-3 mb-2', '导出所有用户权限 CSV');
+    download.href = config.exportUrl;
+    actions.append(download);
+    const feedback = element('p', 'mb-0 mt-2');
+    feedback.style.whiteSpace = 'pre-wrap';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    if (config.canImport) {
+      const form = element('form', 'd-flex flex-wrap align-items-center');
+      const label = element('label', 'sr-only', '选择已修改的权限 CSV');
+      label.htmlFor = 'launcher-permissions-file';
+      const file = element('input', 'mr-3 mb-2');
+      file.type = 'file';
+      file.id = label.htmlFor;
+      file.name = 'file';
+      file.accept = '.csv,text/csv';
+      file.required = true;
+      const submit = element('button', 'btn btn-primary mb-2', '校验并批量导入');
+      submit.type = 'submit';
+      form.append(label, file, submit);
+      let importing = false;
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (importing || !file.files[0]) return;
+        if (file.files[0].size > 10 * 1024 * 1024) {
+          feedback.className = 'text-danger mb-0 mt-2';
+          feedback.textContent = 'CSV 文件不能超过 10 MiB。';
+          return;
+        }
+        const data = new FormData(form);
+        importing = true;
+        file.disabled = submit.disabled = true;
+        submit.textContent = '正在校验并导入…';
+        feedback.className = 'mb-0 mt-2';
+        feedback.textContent = '';
+        try {
+          const result = await request(config.importUrl, {
+            method: 'POST', body: data,
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+          });
+          feedback.className = 'text-success mb-0 mt-2';
+          feedback.textContent = result.message;
+          form.reset();
+          cache.clear();
+          container.querySelector('.card-header form')?.requestSubmit();
+          schedule();
+        } catch (error) {
+          feedback.className = 'text-danger mb-0 mt-2';
+          feedback.textContent = error.message;
+        } finally {
+          importing = false;
+          file.disabled = submit.disabled = false;
+          submit.textContent = '校验并批量导入';
+        }
+      });
+      actions.append(form);
+    }
+    const help = element('details', 'mt-2');
+    help.append(element('summary', '', 'CSV 编辑说明'));
+    help.append(element('p', 'mt-2 mb-1', '只修改“用户等级”和“部门”；UID、邮箱、表头和校验标记请保留。昵称、账号状态及后台权限组为只读信息。可以删除无需修改的行，仅导入保留的账号；不会删除用户。'));
+    help.append(element('p', 'mb-1', '等级：普通用户、社员、部长、社长、管理员、超级管理员。社员和部长必须填写一个部门：宣传部、运维部、技术部、建筑部；其他等级的部门留空。'));
+    help.append(element('p', 'mb-1', '请保存为 CSV UTF-8，单次最多 10 MiB / 20000 人。导入前整批校验，有错误全部不写入；账号权限已变化时须重新导出。封禁和仅认证账号不会自动解禁。后台页签权限继续按等级和部门的权限组配置生效。'));
+    body.append(actions, help, feedback);
+    card.append(body);
+    panel.append(card);
+    // Outside React's root and the search form, so CSV uploads cannot affect search.
+    container.before(panel);
+  }
+
   async function request(url, options = {}) {
     const response = await fetch(url, {
       ...options,
@@ -52,7 +130,7 @@
     if (!response.ok) {
       const message = response.status === 401 || response.status === 419
         ? '登录已过期，请刷新页面并重新登录。'
-        : Object.values(body.errors || {}).flat().join(' ') || body.message || `请求失败（${response.status}）`;
+        : Object.values(body.errors || {}).flat().join('\n') || body.message || `请求失败（${response.status}）`;
       throw new Error(message);
     }
     return body;
@@ -306,6 +384,7 @@
     role.focus();
   }
 
+  mountCsvTools();
   new MutationObserver(schedule).observe(container, { childList: true, subtree: true, characterData: true });
   schedule();
 })();

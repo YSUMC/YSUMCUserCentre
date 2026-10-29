@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use SITMinecraft\Launcher\Access\Membership;
 use SITMinecraft\Launcher\Access\BackendPolicy;
+use SITMinecraft\Launcher\Access\MembershipCsv;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class MembershipController
 {
@@ -49,6 +51,27 @@ final class MembershipController
         return redirect()->to(url('admin/users'))->with('sitmc_launcher_status', '用户等级和部门已保存。');
     }
 
+    public function exportCsv(Request $request, MembershipCsv $csv): StreamedResponse
+    {
+        abort_unless(app(BackendPolicy::class)->allows($request->user(), 'users'), 403);
+        return response()->streamDownload(function () use ($request, $csv) {
+            $stream = fopen('php://output', 'wb');
+            try { $csv->export($request->user(), $stream); } finally { fclose($stream); }
+        }, 'ysumc-user-permissions-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function importCsv(Request $request, MembershipCsv $csv): JsonResponse
+    {
+        abort_unless(app(BackendPolicy::class)->allows($request->user(), 'users', 2), 403);
+        $request->validate(['file' => ['required', 'file', 'max:10240']]);
+        $result = $csv->import($request->user(), $request->file('file')->getContent());
+        return response()->json($result + ['message' => '导入完成：更新 '.$result['updated'].' 人，未变更 '.$result['unchanged'].' 人。'])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     private function row(User $actor, User $user): array
     {
         $membership = $this->memberships->describe($user);
@@ -82,6 +105,10 @@ final class MembershipController
         $display = $user->toArray();
         // This DTO only controls core frontend buttons; no model is promoted.
         if ($policy->allows($user, 'users', 2)) $display['permission'] = max(1, $user->permission);
-        return view('sitmc-launcher::admin.users', ['displayUser' => $display]);
+        return view('sitmc-launcher::admin.users', ['displayUser' => $display, 'membershipCsv' => [
+            'canImport' => $policy->allows($user, 'users', 2),
+            'exportUrl' => route('sitmc-launcher.admin.memberships.export'),
+            'importUrl' => route('sitmc-launcher.admin.memberships.import'),
+        ]]);
     }
 }

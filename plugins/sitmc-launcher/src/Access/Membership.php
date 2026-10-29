@@ -37,12 +37,6 @@ final class Membership
 
     public function assign(User $actor, User $target, string $role, ?string $department): void
     {
-        if (!isset(self::ROLES[$role])) throw ValidationException::withMessages(['role' => '请选择有效的用户等级。']);
-        if (in_array($role, ['member', 'minister'], true)) {
-            if (!isset(self::DEPARTMENTS[$department ?? ''])) throw ValidationException::withMessages(['department' => '社员和部长必须选择一个部门。']);
-        } elseif ($department !== null && $department !== '') {
-            throw ValidationException::withMessages(['department' => '只有社员和部长可以设置部门。']);
-        }
         DB::transaction(function () use ($actor, $target, $role, $department) {
             // Reload and lock both accounts: permissions in an earlier request are not authority.
             $users = User::whereIn('uid', [$actor->uid, $target->uid])->orderBy('uid')->lockForUpdate()->get()->keyBy('uid');
@@ -50,16 +44,9 @@ final class Membership
             $target = $users->get($target->uid);
             $policy = app(BackendPolicy::class);
             $policy->forgetIdentities();
-            abort_unless($actor && $target && $policy->canAssign($actor, $target, $role, $department), 403, '没有调整该用户等级或部门的权限，不能授予超出自己的权限。');
-            abort_if($target->permission < User::NORMAL, 403, '请先在用户管理中处理账号状态。');
+            abort_unless($actor && $target, 403);
+            $this->assertAssignable($actor, $target, $role, $department);
             $permission = match ($role) { 'admin' => User::ADMIN, 'super_admin' => User::SUPER_ADMIN, default => User::NORMAL };
-            if ($actor->permission < User::SUPER_ADMIN) {
-                abort_if($target->permission >= User::ADMIN || $permission >= User::ADMIN, 403);
-            }
-            abort_if($actor->uid === $target->uid && $permission !== $actor->permission, 403, '不能在此修改自己的管理权限。');
-            if ($target->permission >= User::SUPER_ADMIN && $permission < User::SUPER_ADMIN) {
-                abort_if(User::where('permission', '>=', User::SUPER_ADMIN)->lockForUpdate()->count() <= 1, 403, '必须保留至少一位超级管理员。');
-            }
             $before = $this->describe($target);
             $oldPermission = $target->permission;
             if ($permission !== $oldPermission) {
@@ -81,5 +68,26 @@ final class Membership
             ]);
             $policy->forgetIdentities();
         });
+    }
+
+    /** Call with the actor and target locked; also used by bulk import preflight. */
+    public function assertAssignable(User $actor, User $target, string $role, ?string $department): void
+    {
+        if (!isset(self::ROLES[$role])) throw ValidationException::withMessages(['role' => '请选择有效的用户等级。']);
+        if (in_array($role, ['member', 'minister'], true)) {
+            if (!isset(self::DEPARTMENTS[$department ?? ''])) throw ValidationException::withMessages(['department' => '社员和部长必须选择一个部门。']);
+        } elseif ($department !== null && $department !== '') {
+            throw ValidationException::withMessages(['department' => '只有社员和部长可以设置部门。']);
+        }
+        abort_unless(app(BackendPolicy::class)->canAssign($actor, $target, $role, $department), 403, '没有调整该用户等级或部门的权限，不能授予超出自己的权限。');
+        abort_if($target->permission < User::NORMAL, 403, '请先在用户管理中处理账号状态。');
+        $permission = match ($role) { 'admin' => User::ADMIN, 'super_admin' => User::SUPER_ADMIN, default => User::NORMAL };
+        if ($actor->permission < User::SUPER_ADMIN) {
+            abort_if($target->permission >= User::ADMIN || $permission >= User::ADMIN, 403);
+        }
+        abort_if($actor->uid === $target->uid && $permission !== $actor->permission, 403, '不能在此修改自己的管理权限。');
+        if ($target->permission >= User::SUPER_ADMIN && $permission < User::SUPER_ADMIN) {
+            abort_if(User::where('permission', '>=', User::SUPER_ADMIN)->lockForUpdate()->count() <= 1, 403, '必须保留至少一位超级管理员。');
+        }
     }
 }
