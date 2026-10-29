@@ -4,6 +4,23 @@
   {% if status %}<div class="callout callout-success">{{ status }}</div>{% endif %}
   {% if errors is defined and errors.any() %}<div class="callout callout-danger">{% for error in errors.all() %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <div class="card">
+    <div class="card-header"><h3 class="card-title">权限组配置表 · CSV</h3></div>
+    <div class="card-body">
+      <p>一行一个后台功能，一列一个权限组。填写 <strong>0＝不可访问、1＝只读、2＝可管理</strong>；也支持对应的中文名称。</p>
+      <p class="text-muted">只修改权限组列，保留表头、功能标识、权限上限和校验标记。可删除无需修改的功能行；未导入的功能保持原设置。超级管理员固定全部权限，不参与配置。</p>
+      <a class="btn btn-outline-primary mb-3" href="{{ route('sitmc-launcher.admin.policy.export') }}">导出所有权限组配置 CSV</a>
+      <form method="post" enctype="multipart/form-data" action="{{ route('sitmc-launcher.admin.policy.import') }}">
+        {{ csrf_field() }}
+        <div class="form-group">
+          <label for="backend-policy-csv">上传修改后的 CSV</label>
+          <input id="backend-policy-csv" type="file" name="file" accept=".csv,text/csv" class="form-control-file" required>
+          <small class="form-text text-muted">保存为 CSV UTF-8，最大 2 MiB。只读功能最多填 1，仅超级管理员可用的功能只能填 0；同一文件内的更改整批生效或整批拒绝。</small>
+        </div>
+        <button class="btn btn-primary" type="submit">校验并批量导入权限组配置</button>
+      </form>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-header"><h3 class="card-title">按等级与部门配置后台页签</h3></div>
     <div class="card-body">
       <p>每人只使用其当前等级和部门对应的一组权限，不叠加其他组。超级管理员始终可访问全部后台功能，不参与配置。</p>

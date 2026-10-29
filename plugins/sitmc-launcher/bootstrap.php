@@ -103,6 +103,11 @@ return function ($plugin) {
             $router->get('download', [DownloadController::class, 'download'])->name('sitmc-launcher.download.latest');
         });
 
+        $router->group(['middleware' => ['web', 'authorize', 'role:super-admin'], 'prefix' => \SITMinecraft\Launcher\Access\BackendPolicy::CONFIG_PATH], function () use ($router) {
+            $router->get('export', [\SITMinecraft\Launcher\Http\Controllers\Admin\BackendConfigController::class, 'exportCsv'])->name('sitmc-launcher.admin.policy.export');
+            $router->post('import', [\SITMinecraft\Launcher\Http\Controllers\Admin\BackendConfigController::class, 'importCsv'])->name('sitmc-launcher.admin.policy.import');
+        });
+
         // mc-interop v1 unified exit. Same bytes at the canonical well-known
         // path and at the plugin-visible mirror a reverse proxy can forward.
         // Nothing below the legacy `api/launcher` group changed.
