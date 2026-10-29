@@ -3,6 +3,7 @@
 namespace RequirePassword;
 
 use App\Models\User;
+use App\Services\PasswordResetTokens;
 use Closure;
 use Illuminate\Http\Request;
 use Auth;
@@ -21,7 +22,7 @@ class RequirePassword
             $url = URL::temporarySignedRoute(
                 'auth.reset',
                 Carbon::now()->addHour(),
-                ['uid' => $user->uid],
+                ['uid' => $user->uid, 'token' => app(PasswordResetTokens::class)->issue($user)],
                 false
             );
             return redirect($url);
