@@ -36,16 +36,18 @@ final class ConfigController extends Controller
         ]);
         $search = trim($input['q'] ?? '');
         $status = $input['status'] ?? 'all';
-        $query = DB::table('oauth_clients as c')->leftJoin('users as u', 'u.uid', '=', 'c.user_id');
+        $query = DB::table('oauth_clients as c')
+            ->leftJoin('users as u', 'u.uid', '=', 'c.user_id')
+            ->leftJoin(CreationAudit::TABLE.' as a', 'a.client_id', '=', 'c.id');
         if ($status !== 'all') $query->where('c.revoked', $status === 'revoked');
         if ($search !== '') {
             // Bound parameters; use ! as a portable LIKE escape character.
             $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
             $query->where(function ($q) use ($search, $pattern) {
-                foreach (['c.name', 'c.redirect', 'u.email', 'u.nickname'] as $column) {
+                foreach (['c.name', 'c.redirect', 'u.email', 'u.nickname', 'a.actor_nickname'] as $column) {
                     $q->orWhereRaw($column." LIKE ? ESCAPE '!'", [$pattern]);
                 }
-                if (ctype_digit($search)) $q->orWhere('c.id', $search)->orWhere('c.user_id', $search);
+                if (ctype_digit($search)) $q->orWhere('c.id', $search)->orWhere('c.user_id', $search)->orWhere('a.actor_uid', $search);
             });
         }
         $total = (clone $query)->count();
@@ -56,6 +58,8 @@ final class ConfigController extends Controller
             'c.id', 'c.user_id', 'c.name', 'c.provider', 'c.redirect',
             'c.personal_access_client', 'c.password_client', 'c.revoked',
             'c.created_at', 'c.updated_at', 'u.nickname as owner_name', 'u.email as owner_email',
+            'a.actor_uid as creator_uid', 'a.actor_nickname as creator_name',
+            'a.source as creation_source', 'a.recorded_at as creation_recorded_at',
         ])->selectRaw("CASE WHEN c.secret IS NULL OR c.secret = '' THEN 0 ELSE 1 END AS has_secret")
             ->orderByDesc('c.id')->forPage($page, 25)->get();
         return [

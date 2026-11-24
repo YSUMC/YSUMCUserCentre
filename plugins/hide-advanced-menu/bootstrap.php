@@ -8,6 +8,8 @@ use App\Services\Plugin;
 use Illuminate\Routing\Router;
 
 return function (Filter $filter, Plugin $plugin) {
+    CreationAudit::boot();
+
     $filter->add('side_menu', function ($menu, $type) {
         if ($type !== 'user') {
             return $menu;

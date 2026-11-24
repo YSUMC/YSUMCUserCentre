@@ -5,20 +5,28 @@
   <div class="card-header">
     <h3 class="card-title float-none mb-3">全站 OAuth2 应用（{{ total }} 个）</h3>
     <form method="get" class="form-row mb-3">
-      <div class="col-md-7 mb-2"><label class="sr-only" for="oauth-search">搜索应用</label><input id="oauth-search" class="form-control" type="search" name="q" maxlength="200" value="{{ search }}" placeholder="应用名、Client ID、回调地址、所属用户昵称 / 邮箱 / UID"></div>
+      <div class="col-md-7 mb-2"><label class="sr-only" for="oauth-search">搜索应用</label><input id="oauth-search" class="form-control" type="search" name="q" maxlength="200" value="{{ search }}" placeholder="应用名、Client ID、回调地址、所属用户或创建人"></div>
       <div class="col-md-3 mb-2"><label class="sr-only" for="oauth-status">状态</label><select id="oauth-status" name="status" class="form-control"><option value="all" {{ status == 'all' ? 'selected' : '' }}>全部状态</option><option value="active" {{ status == 'active' ? 'selected' : '' }}>未撤销</option><option value="revoked" {{ status == 'revoked' ? 'selected' : '' }}>已撤销</option></select></div>
       <div class="col-md-2 mb-2"><button type="submit" class="btn btn-primary">搜索</button></div>
     </form>
   </div>
   <div class="card-body">
     <p class="text-muted">包含所有用户创建的应用、系统应用和已撤销的应用。只读权限可查看应用资料；管理权限可按需查看 client_secret。密钥显示 60 秒后自动隐藏。</p>
+    <p class="text-muted small">“创建操作人”记录新增应用时的登录用户或系统来源，与所属用户分别保存。历史应用没有操作记录时显示“历史未记录”。</p>
     <div class="table-responsive"><table class="table table-bordered table-hover">
-      <thead><tr><th>应用 / Client ID</th><th>所属用户</th><th>回调地址</th><th>类型 / 状态</th><th>Client Secret</th><th>时间</th></tr></thead>
+      <thead><tr><th>应用 / Client ID</th><th>所属用户</th><th>创建操作人</th><th>回调地址</th><th>类型 / 状态</th><th>Client Secret</th><th>时间</th></tr></thead>
       <tbody>
         {% for client in clients %}
         <tr>
           <td><strong>{{ client.name }}</strong><div>Client ID：<code>{{ client.id }}</code></div></td>
           <td>{% if client.user_id %}UID：{{ client.user_id }}<div>{{ client.owner_name ?: '用户不存在' }}</div><div>{{ client.owner_email }}</div>{% else %}<span class="text-muted">系统应用</span>{% endif %}</td>
+          <td>
+            {% if client.creation_source %}
+              {% if client.creator_uid %}<div>UID：{{ client.creator_uid }}</div><div>{{ client.creator_name }}</div>{% else %}<div>系统（无登录用户）</div>{% endif %}
+              <div class="small text-muted">{{ client.creation_source == 'cli' ? '命令行 / 脚本' : (client.creation_source == 'web' ? '网页登录操作' : '系统创建') }}</div>
+              <div class="small text-muted">记录于 {{ client.creation_recorded_at }}</div>
+            {% else %}<span class="text-muted">历史未记录</span>{% endif %}
+          </td>
           <td style="min-width:220px;max-width:360px;overflow-wrap:anywhere;white-space:pre-wrap">{{ client.redirect ?: '未设置' }}</td>
           <td><div>{{ client.personal_access_client ? '个人访问令牌' : (client.password_client ? '密码授权' : 'OAuth2 授权应用') }}</div><div>{{ client.has_secret ? '机密客户端' : '公共客户端' }}</div><div class="badge badge-{{ client.revoked ? 'secondary' : 'success' }}">{{ client.revoked ? '已撤销' : '未撤销' }}</div>{% if client.provider %}<div>Provider：{{ client.provider }}</div>{% endif %}</td>
           <td style="min-width:150px;max-width:320px;overflow-wrap:anywhere" data-oauth-secret>
@@ -30,7 +38,7 @@
           </td>
           <td class="small">创建：{{ client.created_at ?: '—' }}<br>更新：{{ client.updated_at ?: '—' }}</td>
         </tr>
-        {% else %}<tr><td colspan="6" class="text-center text-muted">没有符合条件的 OAuth2 应用。</td></tr>{% endfor %}
+        {% else %}<tr><td colspan="7" class="text-center text-muted">没有符合条件的 OAuth2 应用。</td></tr>{% endfor %}
       </tbody>
     </table></div>
     <div class="d-flex justify-content-between align-items-center"><span>第 {{ page }} / {{ last_page }} 页 · 共 {{ total }} 个</span><div>{% if previous_url %}<a class="btn btn-outline-secondary btn-sm mr-2" href="{{ previous_url }}">上一页</a>{% endif %}{% if next_url %}<a class="btn btn-outline-secondary btn-sm" href="{{ next_url }}">下一页</a>{% endif %}</div></div>

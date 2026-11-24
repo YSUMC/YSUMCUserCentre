@@ -23,6 +23,7 @@ final class AdminOAuthApplicationsTest extends TestCase
         $loader = require base_path('vendor/autoload.php');
         $loader->addPsr4('Blessing\\HideAdvancedMenu\\', base_path('plugins/hide-advanced-menu/src'), true);
         $this->controller = new ConfigController;
+        \Blessing\HideAdvancedMenu\CreationAudit::install();
         $this->admin = $this->user();
         $this->admin->forceFill(['permission' => User::SUPER_ADMIN])->save();
         Schema::create('oauth_clients', function (Blueprint $t) {
@@ -165,5 +166,70 @@ final class AdminOAuthApplicationsTest extends TestCase
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringNotContainsString('synthetic-secret-not-live', $html);
         $this->assertStringContainsString('data-reveal-url', $html);
+    }
+
+    private function auditClient(?User $actor, User $owner): \Laravel\Passport\Client
+    {
+        \Laravel\Passport\Passport::useClientModel(\App\OAuth\JanusClient::class);
+        \Laravel\Passport\Passport::$clientUuids = false;
+        \Blessing\HideAdvancedMenu\CreationAudit::boot();
+        $this->app->instance('request', $this->req($actor, ['creator_uid' => $owner->uid, 'actor_nickname' => 'Spoofed'], 'POST'));
+        if ($actor) $this->app['auth']->guard()->setUser($actor);
+        else $this->app['auth']->guard()->forgetUser();
+        return $this->app->make(\Laravel\Passport\ClientRepository::class)->createAuthorizationCodeGrantClient(
+            'Creation audit test', ['https://audit.invalid/callback'], true, $owner);
+    }
+
+    public function testCreationAuditCapturesActorInsteadOfOwnerOrSubmittedFields(): void
+    {
+        $owner = $this->user(); $actor = $this->user();
+        $actor->forceFill(['nickname' => 'Audit Creator'])->save();
+        $client = $this->auditClient($actor, $owner);
+        $row = DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->where('client_id', $client->id)->first();
+        $this->assertSame($actor->uid, $row->actor_uid);
+        $this->assertSame('Audit Creator', $row->actor_nickname);
+        $this->assertNotSame($owner->uid, $row->actor_uid);
+        $this->assertSame('cli', $row->source);
+        $this->assertNotEmpty($row->recorded_at);
+        $this->assertStringNotContainsString($client->getRawOriginal('secret'), json_encode($row));
+        $data = $this->controller->applications($this->req($this->admin, ['q' => 'Audit Creator']));
+        $this->assertSame(1, $data['total']);
+        $this->assertSame($actor->uid, $data['clients']->first()->creator_uid);
+        $this->assertSame($owner->uid, $data['clients']->first()->user_id);
+    }
+
+    public function testSystemCreationDoesNotAttributeOwnershipToAnOperator(): void
+    {
+        $client = $this->auditClient(null, $this->user());
+        $row = DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->where('client_id', $client->id)->first();
+        $this->assertNull($row->actor_uid);
+        $this->assertNull($row->actor_nickname);
+        $this->assertSame('cli', $row->source);
+    }
+
+    public function testEditingApplicationOrUserDoesNotRewriteOriginalCreator(): void
+    {
+        $client = $this->auditClient($this->admin, $this->user());
+        $before = DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->first();
+        $this->app->instance('request', $this->req($this->user(), [], 'PUT'));
+        $client->forceFill(['name' => 'Edited', 'user_id' => null])->save();
+        $this->admin->forceFill(['nickname' => 'Renamed administrator'])->save();
+        $this->assertEquals($before, DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->first());
+        $this->assertSame(1, DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->count());
+    }
+
+    public function testAuditParticipatesInCreationTransactionAndDoesNotBackfillHistory(): void
+    {
+        $oldId = $this->client(['user_id' => $this->admin->uid]);
+        $owner = $this->user();
+        DB::beginTransaction();
+        $this->auditClient($this->admin, $owner);
+        $this->assertSame(1, DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->count());
+        DB::rollBack();
+        $this->assertSame(0, DB::table(\Blessing\HideAdvancedMenu\CreationAudit::TABLE)->count());
+        $this->assertSame([$oldId], DB::table('oauth_clients')->pluck('id')->map(fn ($id) => (string) $id)->all());
+        $data = $this->controller->applications($this->req($this->admin));
+        $this->assertNull($data['clients']->first()->creation_source);
+        $this->assertNull($data['clients']->first()->creator_uid);
     }
 }
