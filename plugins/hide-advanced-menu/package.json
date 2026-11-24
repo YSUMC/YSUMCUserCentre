@@ -2,6 +2,7 @@
   "name": "hide-advanced-menu",
   "title": "Blessing\\HideAdvancedMenu::general.title",
   "version": "1.0.1",
+  "ysumc-revision": "admin-oauth-apps-20261124",
   "description": "Blessing\\HideAdvancedMenu::general.description",
   "author": "GPlane",
   "url": "https://gplane.win/",
@@ -10,6 +11,7 @@
     "blessing-skin-server": "^5|^6"
   },
   "enchants": {
+    "config": "ConfigController",
     "icon": {
       "bg": "info",
       "fa": "code-branch"
