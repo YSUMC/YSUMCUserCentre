@@ -38,6 +38,8 @@ final class LauncherSchema
      */
     public const INTEROP_PEERS = 'sitmc_launcher_interop_peers';
 
+    public const PEER_PRESENTATION = 'sitmc_launcher_peer_presentation';
+
     public const INTEROP_SNAPSHOTS = 'sitmc_launcher_interop_snapshots';
 
     public const INTEROP_SERVERS = 'sitmc_launcher_interop_servers';
@@ -97,6 +99,12 @@ final class LauncherSchema
                 $table->boolean('required')->default(true);
                 $table->boolean('enabled')->default(true);
                 $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasColumn(self::INSTANCES, 'tags')) {
+            Schema::table(self::INSTANCES, static function (Blueprint $table): void {
+                $table->text('tags')->nullable();
             });
         }
 
@@ -238,6 +246,18 @@ final class LauncherSchema
             });
         }
 
+        if (! Schema::hasTable(self::PEER_PRESENTATION)) {
+            Schema::create(self::PEER_PRESENTATION, static function (Blueprint $table): void {
+                $table->unsignedBigInteger('peer_id');
+                $table->string('entry_id', 128);
+                $table->boolean('pinned')->default(false);
+                $table->text('tags')->nullable();
+                $table->timestamp('updated_at')->nullable();
+                $table->primary(['peer_id', 'entry_id']);
+                $table->foreign('peer_id')->references('id')->on(self::INTEROP_PEERS)->cascadeOnDelete();
+            });
+        }
+
         if (! Schema::hasTable(self::INTEROP_SNAPSHOTS)) {
             Schema::create(self::INTEROP_SNAPSHOTS, static function (Blueprint $table): void {
                 $table->string('site_id', 64)->primary();
@@ -342,6 +362,7 @@ final class LauncherSchema
         Schema::dropIfExists(self::INTEROP_ENDPOINTS);
         Schema::dropIfExists(self::INTEROP_SERVERS);
         Schema::dropIfExists(self::INTEROP_SNAPSHOTS);
+        Schema::dropIfExists(self::PEER_PRESENTATION);
         Schema::dropIfExists(self::INTEROP_PEERS);
         Schema::dropIfExists(self::RELEASES);
         Schema::dropIfExists(self::ANNOUNCEMENTS);

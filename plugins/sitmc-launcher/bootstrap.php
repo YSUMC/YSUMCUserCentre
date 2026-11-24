@@ -192,6 +192,8 @@ return function ($plugin) {
             function () use ($router) {
                 $brand = 'ysumc';
                 $names = 'sitmc-launcher.admin.';
+                $router->get('experience', [\SITMinecraft\Launcher\Http\Controllers\Admin\ExperienceController::class, 'index'])->name($names.'experience');
+                $router->post('experience', [\SITMinecraft\Launcher\Http\Controllers\Admin\ExperienceController::class, 'save'])->name($names.'experience.save');
                 $router->get('', [InstanceController::class, 'index'])
                     ->defaults('distributionBrand', $brand)
                     ->name($names.'index');
@@ -352,6 +354,10 @@ return function ($plugin) {
 
                 $router->post('interop/publications', [AdminInteropController::class, 'savePublications'])
                     ->name('sitmc-launcher.admin.interop.publications');
+
+                $router->put('interop/peers/{siteId}/presentation', [AdminInteropController::class, 'savePresentation'])
+                    ->where('siteId', '[A-Za-z0-9._-]{1,128}')
+                    ->name('sitmc-launcher.admin.interop.peers.presentation');
 
                 $router->post('interop/sync-token', [AdminInteropController::class, 'rotateSyncToken'])
                     ->name('sitmc-launcher.admin.interop.sync-token');

@@ -54,6 +54,7 @@ final class MutmcController
         }
         $document = $builder->build($rows, $settings['min_version'], $settings['latest_version'], $settings['force_update'], $publishedAt);
         $document['cloud_map_url'] = $settings['cloud_map_url'];
+        $document['experience'] = app(\MUTMC\Launcher\Experience\ExperienceRepository::class)->published($request);
 
         return [$builder, $document];
     }

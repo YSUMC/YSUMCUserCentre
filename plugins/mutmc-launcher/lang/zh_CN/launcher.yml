@@ -409,8 +409,16 @@ distribution:
 audience:
   title: 接收权限
   public: 所有人（含未登录用户）
-  groups: 仅所选等级（需登录皮肤站）
+  groups: 仅所选等级或部门权限组（需登录皮肤站）
   help: 实例的限制同时适用于其整合包；受限实例不会发布到友站。公开外链仍可通过原地址访问。
+  all_departments: （全部部门）
+  department: 按部门细分
+  department_help: 多选时满足任意一项即可接收。若只发给指定部门，请不要同时勾选上方的“社员（全部部门）”或“部长（全部部门）”。给整个部门发放时，请同时勾选该部门的社员和部长。
+  departments:
+    publicity: 宣传部
+    operations: 运维部
+    technology: 技术部
+    building: 建筑部
   roles:
     normal: 普通用户
     member: 社员
@@ -418,3 +426,15 @@ audience:
     president: 社长
     admin: 管理员
     super_admin: 超级管理员
+
+presentation:
+  tags: 实例标签
+  permanent: 常驻
+  event: 活动
+  minigame: 小游戏
+  modded: 模组
+  title: 友社实例展示
+  pin: 置顶到首页
+  hint: 置顶实例会显示在启动器首页前列，仍保留在友社页。标签可多选。
+  empty: 暂无可配置的友社实例，请先添加并同步友社。
+  saved: 展示设置已保存。

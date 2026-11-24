@@ -69,6 +69,8 @@
             <input class="form-control" name="name" value="{{ instance ? instance.name : '' }}" required>
           </div>
 
+          {% include 'mutmc-launcher::admin.instance-tags' %}
+
           <div class="form-group">
             <label>{{ trans('mutmc-launcher::launcher.field.description') }}</label>
             <textarea class="form-control" name="description" rows="3">{{ instance ? instance.description : '' }}</textarea>

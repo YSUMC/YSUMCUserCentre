@@ -457,6 +457,7 @@ final class InteropRepository
             || (string) ($existing->manifest_url ?? '') !== (string) ($payload['manifest_url'] ?? '')
         ) {
             $this->deleteSnapshot($siteId);
+            DB::table(LauncherSchema::PEER_PRESENTATION)->where('peer_id', $existing->id)->delete();
         }
 
         DB::table(LauncherSchema::INTEROP_PEERS)->where('site_id', $siteId)->update($payload);

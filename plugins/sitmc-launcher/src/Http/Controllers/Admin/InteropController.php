@@ -65,6 +65,7 @@ final class InteropController
             'settings' => $result['settings'],
             'instances' => $instances,
             'peers' => $peers,
+            'friendSites' => $this->documents->friends($request->root())['document']['sites'],
             'diagnostics' => $this->labelledDiagnostics($result['diagnostics']),
             'packCount' => count($result['document']['packs']),
             'peerCount' => count($result['document']['peers']),
@@ -77,6 +78,29 @@ final class InteropController
                 : '只读权限不显示同步密钥。',
             'status' => session('sitmc_launcher_status'),
         ]);
+    }
+
+    public function savePresentation(Request $request, string $siteId): RedirectResponse
+    {
+        $values = $request->validate([
+            'instance_id' => ['required', 'string', 'max:257'],
+            'pinned' => ['required', 'boolean'],
+            'tags' => ['nullable', 'array', 'max:4'],
+            'tags.*' => ['string', 'distinct', 'in:'.implode(',', \SITMinecraft\Launcher\Manifest\InstanceTags::KEYS)],
+        ]);
+        $known = false;
+        foreach ($this->documents->friends($request->root())['document']['sites'] as $site) {
+            if ($site['site_id'] !== $siteId) continue;
+            foreach ($site['instances'] as $instance) {
+                if ($instance['id'] === $values['instance_id']) $known = true;
+            }
+        }
+        abort_unless($known, 404);
+        app(\SITMinecraft\Launcher\Interop\PeerPresentation::class)->save(
+            $siteId, $values['instance_id'], $request->boolean('pinned'), $values['tags'] ?? []
+        );
+        return redirect()->route('sitmc-launcher.admin.interop.index')
+            ->with('sitmc_launcher_status', trans('sitmc-launcher::launcher.presentation.saved'));
     }
 
     public function saveSettings(Request $request): RedirectResponse

@@ -7,7 +7,24 @@
   <label class="d-block"><input type="radio" name="audience_mode" value="public" {{ selectedMode == 'public' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.public') }}</label>
   <label class="d-block"><input type="radio" name="audience_mode" value="groups" {{ selectedMode == 'groups' ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.groups') }}</label>
   {% for role in ['normal', 'member', 'minister', 'president', 'admin', 'super_admin'] %}
-    <label class="mr-3"><input type="checkbox" name="audience_roles[]" value="{{ role }}" {{ (hasOldAudience ? (selectedRoles is iterable and role in selectedRoles) : ('"' ~ role ~ '"') in (audience.audience_roles|default(''))) ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}</label>
+    <label class="mr-3"><input type="checkbox" name="audience_roles[]" value="{{ role }}" {{ (hasOldAudience ? (selectedRoles is iterable and role in selectedRoles) : ('"' ~ role ~ '"') in (audience.audience_roles|default(''))) ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}{% if role in ['member', 'minister'] %}{{ trans('sitmc-launcher::launcher.audience.all_departments') }}{% endif %}</label>
   {% endfor %}
+  <div class="table-responsive mt-2">
+    <table class="table table-sm table-bordered mb-1">
+      <caption class="pt-1">{{ trans('sitmc-launcher::launcher.audience.department_help') }}</caption>
+      <thead><tr><th scope="col">{{ trans('sitmc-launcher::launcher.audience.department') }}</th>{% for role in ['member', 'minister'] %}<th scope="col">{{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for department in ['publicity', 'operations', 'technology', 'building'] %}
+          <tr>
+            <th scope="row">{{ trans('sitmc-launcher::launcher.audience.departments.' ~ department) }}</th>
+            {% for role in ['member', 'minister'] %}
+              {% set group = role ~ '_' ~ department %}
+              <td><label class="mb-0"><input type="checkbox" name="audience_roles[]" value="{{ group }}" {{ (hasOldAudience ? (selectedRoles is iterable and group in selectedRoles) : ('"' ~ group ~ '"') in (audience.audience_roles|default(''))) ? 'checked' : '' }}> {{ trans('sitmc-launcher::launcher.audience.departments.' ~ department) }} · {{ trans('sitmc-launcher::launcher.audience.roles.' ~ role) }}</label></td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   <small class="form-text text-muted">{{ trans('sitmc-launcher::launcher.audience.help') }}</small>
 </fieldset>

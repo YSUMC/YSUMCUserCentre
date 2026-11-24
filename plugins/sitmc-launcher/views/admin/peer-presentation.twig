@@ -1,0 +1,26 @@
+<div class="card">
+  <div class="card-header"><h3 class="card-title">{{ trans('sitmc-launcher::launcher.presentation.title') }}</h3></div>
+  <div class="card-body">
+    <p>{{ trans('sitmc-launcher::launcher.presentation.hint') }}</p>
+    {% for site in friendSites %}
+      <h4 class="h5">{{ site.name }}</h4>
+      {% for instance in site.instances %}
+        <form class="border rounded p-3 mb-3" method="post" action="{{ route('sitmc-launcher.admin.interop.peers.presentation', {siteId: site.site_id}) }}">
+          {{ csrf_field() }}{{ method_field('PUT') }}
+          <input type="hidden" name="instance_id" value="{{ instance.id }}">
+          <h5>{{ instance.name }}</h5>
+          <p class="text-muted small">{{ instance.server.address }}{% if instance.server.port %}:{{ instance.server.port }}{% endif %}</p>
+          <label class="mb-3">
+            <input type="hidden" name="pinned" value="0">
+            <input type="checkbox" name="pinned" value="1" {% if instance.pinned %}checked{% endif %}>
+            {{ trans('sitmc-launcher::launcher.presentation.pin') }}
+          </label>
+          {% include 'sitmc-launcher::admin.instance-tags' %}
+          <button class="btn btn-primary" type="submit">{{ trans('sitmc-launcher::launcher.action.save') }}</button>
+        </form>
+      {% endfor %}
+    {% else %}
+      <p class="mb-0 text-muted">{{ trans('sitmc-launcher::launcher.presentation.empty') }}</p>
+    {% endfor %}
+  </div>
+</div>

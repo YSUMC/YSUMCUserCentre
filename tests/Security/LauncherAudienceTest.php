@@ -275,7 +275,7 @@ final class LauncherAudienceTest extends TestCase
         $this->assertSame(User::SUPER_ADMIN, $this->super->fresh()->permission);
     }
 
-    public function testAdminTemplatesRenderOneDepartmentAndSixRecipientGroups(): void
+    public function testAdminTemplatesRenderOneDepartmentAndFourteenRecipientGroups(): void
     {
         $root = base_path('plugins/sitmc-launcher/views/admin/');
         $twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader([
@@ -296,7 +296,7 @@ final class LauncherAudienceTest extends TestCase
         $this->assertStringContainsString('name="department"', $html);
         $this->assertStringNotContainsString('multiple', $html);
         $html = $twig->render('audience', ['audience' => ['audience_roles' => '["member"]']]);
-        $this->assertSame(6, substr_count($html, 'type="checkbox"'));
+        $this->assertSame(14, substr_count($html, 'type="checkbox"'));
         $this->assertStringContainsString('value="member" checked', $html);
         $this->assertStringContainsString('value="groups" checked', $html);
         $session->flashInput(['audience_mode' => 'groups', 'audience_roles' => ['minister']]);

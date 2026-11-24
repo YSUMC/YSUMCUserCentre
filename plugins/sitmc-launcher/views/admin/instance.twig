@@ -74,6 +74,8 @@
             <textarea class="form-control" name="description" rows="3">{{ instance ? instance.description : '' }}</textarea>
           </div>
 
+          {% include 'sitmc-launcher::admin.instance-tags' %}
+
           <div class="form-group">
             <label>{{ trans('sitmc-launcher::launcher.field.icon_url') }}</label>
             <input class="form-control" name="icon_url" value="{{ instance ? instance.icon_url : '' }}">

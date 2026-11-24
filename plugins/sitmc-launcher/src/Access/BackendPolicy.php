@@ -51,6 +51,7 @@ final class BackendPolicy
             $base = 'admin/launcher'.($brand === 'mutmc' ? '/mutmc' : '');
             $add($brand.'_instances', '实例、整合包与更新策略', $label, $base, array_merge([$base.'/instances', $base.'/settings'], $brand === 'mutmc' ? ['admin/plugins/config/mutmc-launcher'] : []));
             $add($brand.'_announcements', '公告', $label, $base.'/announcements', [$base.'/announcements']);
+            $add($brand.'_experience', '导航、在线地图与社团活动', $label, $base.'/experience', [$base.'/experience']);
             $add($brand.'_releases', '启动器版本', $label, $base.'/releases', [$base.'/releases']);
         }
         $add('interop', '友站互联', 'YSUMC 启动器', 'admin/launcher/interop', ['admin/launcher/interop']);

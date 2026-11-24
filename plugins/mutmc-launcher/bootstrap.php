@@ -46,6 +46,8 @@ return function ($plugin) {
         $router->group(['middleware' => ['web', 'authorize', 'role:admin'], 'prefix' => 'admin/launcher/mutmc'], function () use ($router) {
             $brand = 'mutmc';
             $names = 'mutmc-launcher.admin.';
+            $router->get('experience', [\MUTMC\Launcher\Http\Controllers\Admin\ExperienceController::class, 'index'])->name($names.'experience');
+            $router->post('experience', [\MUTMC\Launcher\Http\Controllers\Admin\ExperienceController::class, 'save'])->name($names.'experience.save');
             $router->get('', [InstanceController::class, 'index'])
                 ->defaults('distributionBrand', $brand)
                 ->name($names.'index');

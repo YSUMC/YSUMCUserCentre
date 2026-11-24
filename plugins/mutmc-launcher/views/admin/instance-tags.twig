@@ -1,0 +1,11 @@
+<fieldset class="form-group mb-2">
+  <legend class="h6">{{ trans('mutmc-launcher::launcher.presentation.tags') }}</legend>
+  <input type="hidden" name="tags_present" value="1">
+  {% set selectedTags = (session_get('_old_input.tags_present') and (session_get('_old_input.instance_id') is empty or session_get('_old_input.instance_id') == instance.id)) ? session_get('_old_input.tags', []) : (instance.tags|default([])) %}
+  {% for key, color in {permanent: 'primary', event: 'danger', minigame: 'success', modded: 'warning'} %}
+    <label class="mr-3 mb-2">
+      <input type="checkbox" name="tags[]" value="{{ key }}" {% if selectedTags is iterable and key in selectedTags %}checked{% endif %}>
+      <span class="badge badge-{{ color }}">{{ trans('mutmc-launcher::launcher.presentation.' ~ key) }}</span>
+    </label>
+  {% endfor %}
+</fieldset>

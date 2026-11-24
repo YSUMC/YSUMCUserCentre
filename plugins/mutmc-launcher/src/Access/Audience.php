@@ -39,19 +39,36 @@ final class Audience
         return $identity;
     }
 
+    /** Legacy role selections include every department; scoped keys match one role and department. */
+    public static function groups(): array
+    {
+        $groups = array_keys(Membership::ROLES);
+        foreach (['member', 'minister'] as $role) {
+            foreach (array_keys(Membership::DEPARTMENTS) as $department) $groups[] = $role.'_'.$department;
+        }
+        return $groups;
+    }
+
     public static function roles(mixed $stored): ?array
     {
         if ($stored === null || $stored === '') return null;
         $roles = is_string($stored) ? json_decode($stored, true) : $stored;
         // Corrupt or empty restrictions must deny access, never become public.
         if (!is_array($roles) || !array_is_list($roles) || count(array_filter($roles, 'is_string')) !== count($roles)) return [];
-        return array_values(array_intersect($roles, array_keys(Membership::ROLES)));
+        return array_values(array_intersect($roles, self::groups()));
     }
 
     public static function permits(array $row, ?array $identity): bool
     {
         $roles = self::roles($row['audience_roles'] ?? null);
-        return $roles === null || ($identity !== null && in_array($identity['role'], $roles, true));
+        if ($roles === null) return true;
+        if ($identity === null) return false;
+        $role = $identity['role'] ?? '';
+        if (in_array($role, $roles, true)) return true;
+        $department = $identity['department'] ?? '';
+        return in_array($role, ['member', 'minister'], true)
+            && isset(Membership::DEPARTMENTS[$department])
+            && in_array($role.'_'.$department, $roles, true);
     }
 
     public function filter(iterable $rows, Request $request): array
@@ -83,11 +100,12 @@ final class Audience
     {
         // Older admin clients may omit this field; preserve stored restrictions.
         if (!$request->has('audience_mode')) return [];
+        $groups = self::groups();
         $values = $request->validate(['audience_mode' => ['nullable', 'in:public,groups'],
-            'audience_roles' => ['nullable', 'array', 'max:6'], 'audience_roles.*' => ['string', 'distinct', 'in:'.implode(',', array_keys(Membership::ROLES))]]);
+            'audience_roles' => ['nullable', 'array', 'max:'.count($groups)], 'audience_roles.*' => ['string', 'distinct', 'in:'.implode(',', $groups)]]);
         if (($values['audience_mode'] ?? 'public') === 'public') return ['audience_roles' => null];
         $roles = $values['audience_roles'] ?? [];
-        if (!$roles) throw ValidationException::withMessages(['audience_roles' => '请至少选择一个接收等级。']);
+        if (!$roles) throw ValidationException::withMessages(['audience_roles' => '请至少选择一个接收等级或部门权限组。']);
         return ['audience_roles' => json_encode(array_values($roles), JSON_THROW_ON_ERROR)];
     }
 

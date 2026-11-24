@@ -77,6 +77,12 @@ final class LauncherSchema
             });
         }
 
+        if (! Schema::hasColumn(self::INSTANCES, 'tags')) {
+            Schema::table(self::INSTANCES, static function (Blueprint $table): void {
+                $table->text('tags')->nullable();
+            });
+        }
+
         if (! Schema::hasColumn(self::INSTANCES, 'opened_on')) {
             Schema::table(self::INSTANCES, static function (Blueprint $table): void {
                 $table->date('opened_on')->nullable();

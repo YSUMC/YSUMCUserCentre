@@ -309,7 +309,8 @@ final class InstanceController
             throw \Illuminate\Validation\ValidationException::withMessages(['instance_id' => '实例 ID 创建后不可修改。']);
         }
 
-        return \MUTMC\Launcher\Access\Audience::input($request) + [
+        return \MUTMC\Launcher\Access\Audience::input($request)
+            + \MUTMC\Launcher\Manifest\InstanceTags::input($request) + [
             'distribution_brand' => $this->distributionBrand($request),
             'instance_id' => $values['instance_id'],
             'name' => $values['name'],

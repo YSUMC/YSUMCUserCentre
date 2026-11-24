@@ -438,8 +438,16 @@ distribution:
 audience:
   title: Who can receive this content
   public: Everyone, including signed-out users
-  groups: Selected groups only (skin-site sign-in required)
+  groups: Selected roles or department groups only (skin-site login required)
   help: Instance restrictions also apply to their packs. Restricted instances are excluded from federation. Public external files remain accessible at their original URLs.
+  all_departments: ' (all departments)'
+  department: Department groups
+  department_help: Any selected group grants access. To target specific departments, leave the all-departments Member and Minister options unchecked. Select both cells to include everyone in a department.
+  departments:
+    publicity: Publicity
+    operations: Operations
+    technology: Technology
+    building: Building
   roles:
     normal: User
     member: Member
@@ -447,3 +455,15 @@ audience:
     president: President
     admin: Administrator
     super_admin: Super administrator
+
+presentation:
+  tags: Instance tags
+  permanent: Permanent
+  event: Event
+  minigame: Minigame
+  modded: Modded
+  title: Partner instance display
+  pin: Pin to home
+  hint: Pinned instances appear first on the launcher home page and remain on the partners page. Select any applicable tags.
+  empty: No partner instances available. Add and sync a partner first.
+  saved: Display settings saved.

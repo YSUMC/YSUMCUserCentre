@@ -266,6 +266,7 @@ final class LauncherRepository
     private static function normalize(object|array $row): array
     {
         $row = (array) $row;
+        $row['tags'] = InstanceTags::normalize($row['tags'] ?? null);
         $row['id'] = (string) ($row['instance_id'] ?? '');
 
         return $row;
@@ -279,6 +280,7 @@ final class LauncherRepository
         'i.updated_at',
         'i.name',
         'i.description',
+        'i.tags',
         'i.icon_url',
         'i.sort',
         'i.revision',

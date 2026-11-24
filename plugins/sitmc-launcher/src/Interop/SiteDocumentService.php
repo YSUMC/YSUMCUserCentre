@@ -208,8 +208,8 @@ final class SiteDocumentService
         return [
             'document' => [
                 'schema' => 1,
-                'generated_at' => $interop['updatedAt'],
-                'sites' => $sites,
+                'generated_at' => InteropRules::isoUtc(max(strtotime($interop['updatedAt']), (new PeerPresentation())->updatedAt() ?? 0)),
+                'sites' => (new PeerPresentation())->decorate($sites),
             ],
             'diagnostics' => array_merge($builder->diagnostics(), $peer['diagnostics']),
             'domain' => $domain,
@@ -235,10 +235,16 @@ final class SiteDocumentService
         }
         unset($row);
         $settings = $this->repository->settings();
-        return (new SiteDocumentBuilder($domain))->build($rows, ['site' => [
+        $document = (new SiteDocumentBuilder($domain))->build($rows, ['site' => [
             'id' => $settings['site_id'], 'name' => $settings['site_name'],
             'description' => $settings['site_description'], 'domain' => $domain,
         ], 'settingsUpdatedAt' => $this->repository->interopUpdatedAt()]);
+        $tags = array_column($rows, 'tags', 'id');
+        foreach ($document['packs'] as &$entry) {
+            $entry['tags'] = \SITMinecraft\Launcher\Manifest\InstanceTags::normalize($tags[$entry['id']] ?? null);
+        }
+        unset($entry);
+        return $document;
     }
 
     public function scheduleRefresh(): void

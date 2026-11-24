@@ -38,6 +38,7 @@ final class ManifestController
         // never cached or re-exported through public federation endpoints.
         $document['catalog'] = $this->documents->audienceDocument($request);
         $document['cloud_map_url'] = $settings['cloud_map_url'];
+        $document['experience'] = app(\SITMinecraft\Launcher\Experience\ExperienceRepository::class)->published($request);
         $etag = $builder->etag($document);
 
         if (InteropRules::ifNoneMatch($request->header('If-None-Match'), $etag)) {

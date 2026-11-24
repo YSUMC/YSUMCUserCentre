@@ -119,6 +119,7 @@ final class ManifestBuilder
             'id' => (string) $row['id'],
             'name' => (string) ($row['name'] ?? $row['id']),
             'description' => self::textOrNull($row['description'] ?? null),
+            'tags' => InstanceTags::normalize($row['tags'] ?? null),
             'icon_url' => self::textOrNull($row['icon_url'] ?? null),
             'sort' => (int) ($row['sort'] ?? 0),
             'revision' => (int) ($row['revision'] ?? 0),

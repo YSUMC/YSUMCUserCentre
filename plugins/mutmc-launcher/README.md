@@ -32,3 +32,14 @@
 ## 维护
 
 替换源码后清除 route、view、Twig 缓存；改环境配置时同时清除 config 缓存，刷新 PHP-FPM。MUTMC 现有客户端接口无需改地址；客户端是否发送身份令牌，决定其能否接收配置为受限的内容。
+
+
+## 实例分类标签
+
+实例编辑页提供可多选的「常驻、活动、小游戏、模组」。保存后通过清单的 `tags` 数组下发，分别对应 `permanent`、`event`、`minigame`、`modded`。清空全部选项即可移除标签；仅修改标签不会提高整合包修订号。需要新版启动器显示，旧客户端仍可正常读取清单。
+
+## 页面与活动配置
+
+旧 PHP 分发入口新增 `/admin/launcher/mutmc/experience`，独立权限 `mutmc_experience`、设置键 `mutmc.experience_v1`。支持主要导航启停、多个 HTTPS 地图和网页页签、公告/活动/线下打卡排期，通过该插件的 manifest 的 `experience` 字段下发。打卡仅展示排期，不采集签到；友社入口对 MUTMCL 始终不显示。
+
+该设置只影响旧 PHP 分发接口；已改用 MUTManagement 的客户端不会读取此后台。新平台需实现相同 experience 结构后才能控制对应客户端，不应将它改回旧地址来临时接入。

@@ -1,0 +1,21 @@
+<fieldset class="border rounded p-3 mb-3" data-row>
+  <input type="hidden" name="{{ section }}[{{ index }}][id]" value="{{ row.id }}">
+  <div class="form-row">
+    <label class="col-md-5">名称<input class="form-control" name="{{ section }}[{{ index }}][title]" value="{{ row.title }}" maxlength="{{ section == 'pages' ? 60 : 120 }}" required></label>
+    <label class="col-md-3">类型<select class="form-control" name="{{ section }}[{{ index }}][kind]">
+      {% set kinds = section == 'pages' ? {map: '在线地图', website: '网页页签'} : {announcement: '公告', event: '活动', checkin: '线下打卡'} %}
+      {% for value, label in kinds %}<option value="{{ value }}" {{ row.kind == value ? 'selected' : '' }}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <label class="col-md-2 align-self-end"><input type="hidden" name="{{ section }}[{{ index }}][enabled]" value="0"><input type="checkbox" name="{{ section }}[{{ index }}][enabled]" value="1" {{ row.enabled ? 'checked' : '' }}> 发布</label>
+    <div class="col-md-2 align-self-end"><button type="button" class="btn btn-outline-danger mb-2" data-remove>移除</button></div>
+  </div>
+  <label class="w-100">{{ section == 'pages' ? '网页地址' : '详情链接（选填）' }}<input type="url" class="form-control" name="{{ section }}[{{ index }}][url]" value="{{ row.url }}" maxlength="2048" placeholder="https://" {{ section == 'pages' ? 'required' : '' }}></label>
+  {% if section == 'activities' %}
+    <label class="w-100">介绍<textarea class="form-control" name="activities[{{ index }}][description]" maxlength="2000" rows="3">{{ row.description }}</textarea></label>
+    <div class="form-row">
+      <label class="col-md-4">开始时间<input type="datetime-local" class="form-control" name="activities[{{ index }}][starts_at]" value="{{ row.starts_at ? row.starts_at|date('Y-m-d\\TH:i', 'Asia/Shanghai') : '' }}"></label>
+      <label class="col-md-4">结束时间<input type="datetime-local" class="form-control" name="activities[{{ index }}][ends_at]" value="{{ row.ends_at ? row.ends_at|date('Y-m-d\\TH:i', 'Asia/Shanghai') : '' }}"></label>
+      <label class="col-md-4">地点<input class="form-control" name="activities[{{ index }}][location]" value="{{ row.location }}" maxlength="200" placeholder="服务器或线下地点"></label>
+    </div>
+  {% endif %}
+</fieldset>

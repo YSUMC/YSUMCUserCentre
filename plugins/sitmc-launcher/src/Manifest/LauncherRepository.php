@@ -268,6 +268,7 @@ final class LauncherRepository
     {
         $row = (array) $row;
         $row['id'] = (string) ($row['instance_id'] ?? '');
+        $row['tags'] = InstanceTags::normalize($row['tags'] ?? null);
 
         return $row;
     }
@@ -279,6 +280,7 @@ final class LauncherRepository
         'p.format as pack_format',
         'i.updated_at',
         'i.name',
+        'i.tags',
         'i.description',
         'i.icon_url',
         'i.sort',
